@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -208,7 +207,7 @@ export function TransactionList() {
                       "text-right font-medium",
                       transaction.amount > 0 ? "text-budget-green-600" : "text-budget-red-600"
                     )}>
-                      {transaction.amount > 0 ? "+" : ""}${Math.abs(transaction.amount).toFixed(2)}
+                      {transaction.amount > 0 ? "+" : ""}₹{Math.abs(transaction.amount).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))

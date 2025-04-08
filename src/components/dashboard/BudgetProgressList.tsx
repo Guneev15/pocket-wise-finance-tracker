@@ -37,7 +37,7 @@ export function BudgetProgressList() {
               <div className="flex justify-between items-center">
                 <span className="font-medium">{item.category}</span>
                 <span className={getBudgetStatusColor(item.percentage)}>
-                  ${item.spent} / ${item.budget}
+                  ₹{item.spent} / ₹{item.budget}
                 </span>
               </div>
               <div className="flex items-center gap-4">

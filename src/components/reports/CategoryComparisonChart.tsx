@@ -71,7 +71,7 @@ export function CategoryComparisonChart() {
             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis 
               type="number" 
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => `₹${value}`}
               style={{ fontSize: '0.75rem' }}
             />
             <YAxis 
@@ -81,7 +81,7 @@ export function CategoryComparisonChart() {
               style={{ fontSize: '0.75rem' }}
             />
             <Tooltip 
-              formatter={(value) => [`$${value}`, undefined]}
+              formatter={(value) => [`₹${value}`, undefined]}
               contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
             />
             <Legend />

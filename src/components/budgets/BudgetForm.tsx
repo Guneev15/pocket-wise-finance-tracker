@@ -145,7 +145,7 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
                   <FormLabel>Budget Amount</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5">$</span>
+                      <span className="absolute left-3 top-2.5">₹</span>
                       <Input {...field} className="pl-7" placeholder="0.00" />
                     </div>
                   </FormControl>

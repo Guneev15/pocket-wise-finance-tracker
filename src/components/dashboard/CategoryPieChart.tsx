@@ -36,7 +36,7 @@ export function CategoryPieChart() {
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value) => [`$${value}`, undefined]}
+              formatter={(value) => [`₹${value}`, undefined]}
               contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
             />
             <Legend />

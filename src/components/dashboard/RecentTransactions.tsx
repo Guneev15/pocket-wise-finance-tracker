@@ -81,7 +81,7 @@ export function RecentTransactions() {
                 "font-semibold text-right",
                 transaction.amount > 0 ? "text-budget-green-600" : "text-budget-red-600"
               )}>
-                {transaction.amount > 0 ? "+" : ""}${Math.abs(transaction.amount).toFixed(2)}
+                {transaction.amount > 0 ? "+" : ""}₹{Math.abs(transaction.amount).toFixed(2)}
               </div>
             </div>
           ))}

@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,11 +37,10 @@ export default function Index() {
             <Button size="lg" className="bg-white text-budget-green-800 hover:bg-gray-100" onClick={() => navigate("/signup")}>
               Get Started — It's Free
             </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-budget-green-700 relative overflow-hidden group" onClick={() => document.getElementById('features')?.scrollIntoView({
+            <Button size="lg" variant="outline" className="text-white border-white hover:bg-budget-green-700" onClick={() => document.getElementById('features')?.scrollIntoView({
             behavior: 'smooth'
           })}>
-              <span className="relative z-10 text-lime-800">Learn More</span>
-              <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300 font-thin text-gray-300 text-base"></span>
+              Learn More
             </Button>
           </div>
         </div>

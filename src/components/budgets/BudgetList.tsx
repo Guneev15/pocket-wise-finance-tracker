@@ -131,12 +131,12 @@ export function BudgetList() {
                   <div>
                     <div className="text-muted-foreground">Spent</div>
                     <div className="font-semibold text-budget-red-600">
-                      ${budget.spent.toFixed(2)}
+                      ₹{budget.spent.toFixed(2)}
                     </div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Budget</div>
-                    <div className="font-semibold">${budget.budget.toFixed(2)}</div>
+                    <div className="font-semibold">₹{budget.budget.toFixed(2)}</div>
                   </div>
                 </div>
                 
@@ -144,12 +144,12 @@ export function BudgetList() {
                   {budget.percentage > 100 ? (
                     <div className="flex items-center text-budget-red-600">
                       <ArrowUp className="h-4 w-4 mr-1" />
-                      <span>Exceeded by ${(budget.spent - budget.budget).toFixed(2)}</span>
+                      <span>Exceeded by ₹{(budget.spent - budget.budget).toFixed(2)}</span>
                     </div>
                   ) : (
                     <div className="flex items-center text-budget-green-600">
                       <ArrowDown className="h-4 w-4 mr-1" />
-                      <span>${(budget.budget - budget.spent).toFixed(2)} remaining</span>
+                      <span>₹{(budget.budget - budget.spent).toFixed(2)} remaining</span>
                     </div>
                   )}
                 </div>

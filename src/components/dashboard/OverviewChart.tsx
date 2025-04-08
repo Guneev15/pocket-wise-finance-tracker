@@ -46,11 +46,11 @@ export function OverviewChart() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" />
             <YAxis 
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => `₹${value}`}
               style={{ fontSize: '0.75rem' }}
             />
             <Tooltip 
-              formatter={(value) => [`$${value}`, undefined]}
+              formatter={(value) => [`₹${value}`, undefined]}
               contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
             />
             <Legend />
