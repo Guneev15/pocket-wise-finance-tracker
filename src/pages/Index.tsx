@@ -37,9 +37,13 @@ export default function Index() {
             <Button size="lg" className="bg-white text-budget-green-800 hover:bg-gray-100" onClick={() => navigate("/signup")}>
               Get Started — It's Free
             </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-budget-green-700" onClick={() => document.getElementById('features')?.scrollIntoView({
-            behavior: 'smooth'
-          })}>
+            <Button 
+              size="lg" 
+              className="bg-budget-green-700 text-white border-2 border-white hover:bg-budget-green-600" 
+              onClick={() => document.getElementById('features')?.scrollIntoView({
+                behavior: 'smooth'
+              })}
+            >
               Learn More
             </Button>
           </div>
