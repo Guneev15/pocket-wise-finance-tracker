@@ -8,13 +8,16 @@ import {
   PieChart, 
   Home, 
   PlusCircle, 
-  Settings 
+  Settings,
+  Menu
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -26,6 +29,10 @@ export function Sidebar() {
     toast.success("Logged out successfully");
     navigate("/login");
   };
+
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  };
   
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: Home },
@@ -36,8 +43,28 @@ export function Sidebar() {
   ];
 
   return (
-    <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-10">
-      <div className="flex-1 flex flex-col min-h-0 bg-gradient-to-b from-budget-green-800 to-budget-green-900">
+    <>
+      {/* Mobile menu button */}
+      <div className="fixed top-4 left-4 z-50 md:hidden">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={toggleSidebar}
+          className="bg-budget-green-800 text-white hover:bg-budget-green-700"
+        >
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle sidebar</span>
+        </Button>
+      </div>
+
+      {/* Sidebar for mobile and desktop */}
+      <div 
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-64 flex-col bg-gradient-to-b from-budget-green-800 to-budget-green-900 transition-transform duration-300 ease-in-out",
+          "md:flex md:static md:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
         <div className="flex items-center h-16 flex-shrink-0 px-4 bg-budget-green-900">
           <h1 className="text-xl font-bold text-white">BudgetWise</h1>
         </div>
@@ -53,7 +80,10 @@ export function Sidebar() {
                     ? "bg-budget-green-700 text-white hover:bg-budget-green-700" 
                     : "text-gray-100 hover:bg-budget-green-700 hover:text-white"
                 )}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  if (isOpen) setIsOpen(false);
+                }}
               >
                 <item.icon className="mr-3 h-5 w-5" />
                 {item.name}
@@ -72,6 +102,14 @@ export function Sidebar() {
           </Button>
         </div>
       </div>
-    </div>
+
+      {/* Backdrop for mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
   );
 }
