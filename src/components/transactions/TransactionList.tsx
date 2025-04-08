@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { Search, Filter, ArrowUpRight, ArrowDownRight, Trash2, Edit2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,210 +19,206 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  ArrowDown, 
-  ArrowUp, 
-  Coffee, 
-  Home, 
-  ShoppingCart, 
-  Truck, 
-  Zap,
-  Search
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { transactionService } from "@/services/transactions";
+import { authService } from "@/services/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { TransactionForm } from "./TransactionForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-// Mock transaction data
-const demoTransactions = [
-  { 
-    id: 1, 
-    title: "Rent Payment", 
-    amount: -1200, 
-    date: "2023-04-01", 
-    category: "Housing",
-    icon: Home,
-  },
-  { 
-    id: 2, 
-    title: "Salary", 
-    amount: 3500, 
-    date: "2023-04-01", 
-    category: "Income",
-    icon: ArrowUp,
-  },
-  { 
-    id: 3, 
-    title: "Grocery Shopping", 
-    amount: -85.75, 
-    date: "2023-04-03", 
-    category: "Food",
-    icon: ShoppingCart,
-  },
-  { 
-    id: 4, 
-    title: "Electricity Bill", 
-    amount: -125.30, 
-    date: "2023-04-05", 
-    category: "Utilities",
-    icon: Zap,
-  },
-  { 
-    id: 5, 
-    title: "Coffee Shop", 
-    amount: -4.50, 
-    date: "2023-04-06", 
-    category: "Food",
-    icon: Coffee,
-  },
-  { 
-    id: 6, 
-    title: "Uber", 
-    amount: -12.50, 
-    date: "2023-04-07", 
-    category: "Transportation",
-    icon: Truck,
-  },
-  { 
-    id: 7, 
-    title: "Freelance Payment", 
-    amount: 450, 
-    date: "2023-04-10", 
-    category: "Income",
-    icon: ArrowUp,
-  },
-  { 
-    id: 8, 
-    title: "Internet Bill", 
-    amount: -80, 
-    date: "2023-04-12", 
-    category: "Utilities",
-    icon: Zap,
-  },
-  { 
-    id: 9, 
-    title: "Restaurant Dinner", 
-    amount: -65.20, 
-    date: "2023-04-15", 
-    category: "Food",
-    icon: Coffee,
-  },
-  { 
-    id: 10, 
-    title: "Gas Station", 
-    amount: -45, 
-    date: "2023-04-18", 
-    category: "Transportation",
-    icon: Truck,
-  },
+const categoryOptions = [
+  { value: "all", label: "All Categories" },
+  { value: "income", label: "Income" },
+  { value: "housing", label: "Housing" },
+  { value: "food", label: "Food" },
+  { value: "transportation", label: "Transportation" },
+  { value: "utilities", label: "Utilities" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "shopping", label: "Shopping" },
+  { value: "personal", label: "Personal" },
+  { value: "education", label: "Education" },
+  { value: "savings", label: "Savings" },
+  { value: "debt", label: "Debt" },
+  { value: "other", label: "Other" },
 ];
 
 export function TransactionList() {
+  const navigate = useNavigate();
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  
-  // Filter transactions based on search term, category, and type
-  const filteredTransactions = demoTransactions.filter((transaction) => {
-    const matchesSearch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || transaction.category.toLowerCase() === categoryFilter.toLowerCase();
-    const matchesType = 
-      typeFilter === "all" || 
-      (typeFilter === "income" && transaction.amount > 0) || 
-      (typeFilter === "expense" && transaction.amount < 0);
-    
+  const [category, setCategory] = useState("all");
+  const [type, setType] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    if (!authService.isAuthenticated()) {
+      toast.error("Please log in to view transactions");
+      navigate("/login");
+      return;
+    }
+
+    loadTransactions();
+  }, [navigate]);
+
+  const loadTransactions = async () => {
+    try {
+      const user = authService.getCurrentUser();
+      if (!user) {
+        toast.error("Please log in to view transactions");
+        navigate("/login");
+        return;
+      }
+
+      const userTransactions = await transactionService.getTransactions(user.id);
+      setTransactions(userTransactions);
+    } catch (error) {
+      toast.error("Failed to load transactions");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (transactionId: string) => {
+    try {
+      const result = await transactionService.deleteTransaction(transactionId);
+      if (result.success) {
+        toast.success(result.message);
+        loadTransactions();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("Failed to delete transaction");
+    }
+  };
+
+  const handleTransactionAdded = () => {
+    setIsDialogOpen(false);
+    loadTransactions(); // Refresh transactions after adding a new one
+  };
+
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesSearch = transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = category === "all" || transaction.category === category;
+    const matchesType = type === "all" || transaction.type === type;
     return matchesSearch && matchesCategory && matchesType;
   });
 
-  // Get all unique categories from transactions
-  const categories = ["all", ...new Set(demoTransactions.map(t => t.category.toLowerCase()))];
+  if (isLoading) {
+    return <div>Loading transactions...</div>;
+  }
 
   return (
     <Card>
-      <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Transactions</CardTitle>
-        <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search transactions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 w-full sm:w-[200px]"
-            />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expense</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>Add Transaction</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Transaction</DialogTitle>
+            </DialogHeader>
+            <TransactionForm onSuccess={handleTransactionAdded} />
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center mr-2",
-                          transaction.amount > 0 ? "bg-budget-green-100" : "bg-budget-red-100"
-                        )}>
-                          <transaction.icon className={cn(
-                            "h-4 w-4",
-                            transaction.amount > 0 ? "text-budget-green-600" : "text-budget-red-600"
-                          )} />
-                        </div>
-                        {transaction.title}
-                      </div>
-                    </TableCell>
-                    <TableCell>{transaction.category}</TableCell>
-                    <TableCell>{transaction.date}</TableCell>
-                    <TableCell className={cn(
-                      "text-right font-medium",
-                      transaction.amount > 0 ? "text-budget-green-600" : "text-budget-red-600"
-                    )}>
-                      {transaction.amount > 0 ? "+" : ""}₹{Math.abs(transaction.amount).toFixed(2)}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-1 items-center space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search transactions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      No transactions found
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
-                    No transactions found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>{format(new Date(transaction.date), "MMM dd, yyyy")}</TableCell>
+                      <TableCell>{transaction.description || "No description"}</TableCell>
+                      <TableCell>{transaction.category}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          {transaction.amount > 0 ? (
+                            <ArrowUpRight className="mr-1 h-4 w-4 text-green-500" />
+                          ) : (
+                            <ArrowDownRight className="mr-1 h-4 w-4 text-red-500" />
+                          )}
+                          <span className={transaction.amount > 0 ? "text-green-500" : "text-red-500"}>
+                            ₹{Math.abs(transaction.amount).toFixed(2)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(transaction.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>

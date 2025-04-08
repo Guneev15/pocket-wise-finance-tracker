@@ -12,18 +12,7 @@ import {
 } from "recharts";
 
 const data = [
-  { name: "Jan", income: 4000, expenses: 2400 },
-  { name: "Feb", income: 3000, expenses: 1398 },
-  { name: "Mar", income: 2000, expenses: 9800 },
-  { name: "Apr", income: 2780, expenses: 3908 },
-  { name: "May", income: 1890, expenses: 4800 },
-  { name: "Jun", income: 2390, expenses: 3800 },
-  { name: "Jul", income: 3490, expenses: 4300 },
-  { name: "Aug", income: 3490, expenses: 2300 },
-  { name: "Sep", income: 2490, expenses: 2700 },
-  { name: "Oct", income: 4490, expenses: 3100 },
-  { name: "Nov", income: 3990, expenses: 2900 },
-  { name: "Dec", income: 5490, expenses: 3200 },
+  
 ];
 
 export function OverviewChart() {

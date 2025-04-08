@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { authService } from "@/services/auth";
 import {
   Dialog,
   DialogContent,
@@ -29,24 +29,19 @@ export function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      if (email === "demo@example.com" && password === "password") {
-        // Store authentication state
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("user", JSON.stringify({ 
-          id: "1", 
-          name: "Demo User", 
-          email: "demo@example.com" 
-        }));
-        
-        toast.success("Login successful!");
+    try {
+      const result = await authService.login(email, password);
+      if (result.success) {
+        toast.success(result.message);
         navigate("/dashboard");
       } else {
-        toast.error("Invalid credentials. Try demo@example.com / password");
+        toast.error(result.message);
       }
+    } catch (error) {
+      toast.error("An error occurred during login");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handlePasswordReset = (e: React.FormEvent) => {
@@ -99,7 +94,7 @@ export function LoginForm() {
                   </DialogHeader>
                   <form onSubmit={handlePasswordReset}>
                     <div className="grid gap-4 py-4">
-                      <div className="space-y-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="reset-email">Email</Label>
                         <Input
                           id="reset-email"
@@ -113,7 +108,7 @@ export function LoginForm() {
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={isResetting}>
-                        {isResetting ? "Sending..." : "Send reset link"}
+                        {isResetting ? "Sending..." : "Send Reset Link"}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -130,20 +125,17 @@ export function LoginForm() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Log in"}
+            {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
+      <CardFooter className="flex justify-center">
+        <p className="text-sm text-gray-600">
           Don't have an account?{" "}
-          <Button variant="link" className="p-0" onClick={() => navigate("/signup")}>
+          <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/signup")}>
             Sign up
           </Button>
-        </div>
-        <div className="text-xs text-center text-muted-foreground">
-          <strong>Demo Access:</strong> Email: demo@example.com / Password: password
-        </div>
+        </p>
       </CardFooter>
     </Card>
   );

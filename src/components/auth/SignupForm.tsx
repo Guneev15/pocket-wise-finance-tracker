@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { authService } from "@/services/auth";
 
 export function SignupForm() {
   const [name, setName] = useState("");
@@ -25,20 +25,19 @@ export function SignupForm() {
     
     setIsLoading(true);
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      // Store authentication state
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("user", JSON.stringify({ 
-        id: "1", 
-        name, 
-        email 
-      }));
-      
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
+    try {
+      const result = await authService.register(name, email, password);
+      if (result.success) {
+        toast.success("Account created successfully! Please log in.");
+        navigate("/login");
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("An error occurred during registration");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

@@ -1,20 +1,23 @@
-
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Menu, Home, PlusCircle, PieChart, BarChart, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { authService } from "@/services/auth";
 
 export function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = authService.getCurrentUser();
   
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
+    // Store current path before logout
+    localStorage.setItem('previousPath', location.pathname);
+    
+    authService.logout();
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -80,7 +83,7 @@ export function Header() {
           <div className="flex items-center">
             <div className="hidden md:ml-4 md:flex-shrink-0 md:flex md:items-center">
               <div className="text-sm font-medium text-gray-700 mr-4">
-                Welcome, {user.name || "User"}
+                Welcome, {user?.name || "User"}
               </div>
             </div>
           </div>

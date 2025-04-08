@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { transactionService } from "@/services/transactions";
+import { authService } from "@/services/auth";
 
 const categoryOptions = [
   { value: "income", label: "Income" },
@@ -63,8 +65,14 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
+interface TransactionFormProps {
+  onSuccess?: () => void;
+}
+
+export function TransactionForm({ onSuccess }: TransactionFormProps) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,18 +85,53 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, this would be an API call
-    console.log("Transaction values:", values);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Transaction added successfully!");
-      form.reset();
+  useEffect(() => {
+    // Check if user is authenticated when dialog opens
+    if (isOpen && !authService.isAuthenticated()) {
+      toast.error("Please log in to add transactions");
       setIsOpen(false);
-      if (onSuccess) onSuccess();
-    }, 500);
-  }
+      navigate("/login");
+    }
+  }, [isOpen, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const user = authService.getCurrentUser();
+    if (!user) {
+      toast.error("You must be logged in to add transactions");
+      navigate("/login");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const result = await transactionService.addTransaction({
+        type: form.getValues("type"),
+        amount: parseFloat(form.getValues("amount")),
+        date: format(form.getValues("date"), "yyyy-MM-dd"),
+        category: form.getValues("category"),
+        description: form.getValues("description"),
+        userId: user.id
+      });
+      
+      if (result.success) {
+        toast.success("Transaction added successfully!");
+        form.reset();
+        setIsOpen(false);
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        toast.error(result.message || "Failed to add transaction");
+      }
+    } catch (error) {
+      toast.error("An error occurred while adding the transaction");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -100,7 +143,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
           <DialogTitle>Add New Transaction</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <FormField
               control={form.control}
               name="type"
@@ -224,7 +267,9 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save Transaction</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Transaction"}
+              </Button>
             </div>
           </form>
         </Form>

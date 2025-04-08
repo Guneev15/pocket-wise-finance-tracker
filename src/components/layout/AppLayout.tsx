@@ -1,16 +1,15 @@
-
 import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { authService } from "@/services/auth";
 
 export function AppLayout() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!isLoggedIn) {
+    // Check if user is authenticated
+    if (!authService.isAuthenticated()) {
       navigate("/login");
     }
   }, [navigate]);
