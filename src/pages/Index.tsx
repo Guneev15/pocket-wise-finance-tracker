@@ -1,20 +1,15 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
 export default function Index() {
   const navigate = useNavigate();
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  
   useEffect(() => {
     if (isLoggedIn) {
       navigate("/dashboard");
     }
   }, [isLoggedIn, navigate]);
-
-  return (
-    <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
+  return <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
       <header className="px-4 py-6 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-2xl font-bold text-white">BudgetWise</h1>
@@ -41,14 +36,11 @@ export default function Index() {
             <Button size="lg" className="bg-white text-budget-green-800 hover:bg-gray-100" onClick={() => navigate("/signup")}>
               Get Started — It's Free
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="text-white border-white hover:bg-budget-green-700 relative overflow-hidden group"
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              <span className="relative z-10">Learn More</span>
-              <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
+            <Button size="lg" variant="outline" className="text-white border-white hover:bg-budget-green-700 relative overflow-hidden group" onClick={() => document.getElementById('features')?.scrollIntoView({
+            behavior: 'smooth'
+          })}>
+              <span className="relative z-10 text-lime-800">Learn More</span>
+              <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300 font-thin text-gray-300 text-base"></span>
             </Button>
           </div>
         </div>
@@ -116,6 +108,5 @@ export default function Index() {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }
