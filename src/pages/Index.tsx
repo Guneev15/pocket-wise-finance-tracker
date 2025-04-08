@@ -41,14 +41,20 @@ export default function Index() {
             <Button size="lg" className="bg-white text-budget-green-800 hover:bg-gray-100" onClick={() => navigate("/signup")}>
               Get Started — It's Free
             </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-budget-green-700">
-              Learn More
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-white border-white hover:bg-budget-green-700 relative overflow-hidden group"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <span className="relative z-10">Learn More</span>
+              <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
             </Button>
           </div>
         </div>
       </main>
       
-      <div className="px-4 py-12 sm:px-6 lg:px-8 bg-white">
+      <div id="features" className="px-4 py-12 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose BudgetWise?</h2>
