@@ -49,33 +49,44 @@ export function LoginForm() {
 
     setIsLoading(true);
     
-    // Check for credentials in localStorage
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find((u: any) => u.email === email && u.password === password);
-    
-    setTimeout(() => {
-      if (user || (email === "demo@gmail.com" && password === "password")) {
-        // Store authentication state
-        localStorage.setItem("isLoggedIn", "true");
-        
-        // If demo account, create a standard user object
-        if (email === "demo@gmail.com" && password === "password") {
+    try {
+      // Check for credentials in localStorage
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const user = users.find((u: any) => u.email === email);
+      
+      setTimeout(() => {
+        if (user && user.password === password) {
+          // Store authentication state
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("user", JSON.stringify({ 
+            id: user.id, 
+            name: user.name, 
+            email: user.email 
+          }));
+          
+          toast.success("Login successful!");
+          navigate("/dashboard");
+        } else if (email === "demo@gmail.com" && password === "password") {
+          // Demo account login
+          localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("user", JSON.stringify({ 
             id: "demo1", 
             name: "Demo User", 
             email: "demo@gmail.com" 
           }));
+          
+          toast.success("Login successful!");
+          navigate("/dashboard");
         } else {
-          localStorage.setItem("user", JSON.stringify(user));
+          toast.error("Invalid credentials. Please check your email and password.");
         }
-        
-        toast.success("Login successful!");
-        navigate("/dashboard");
-      } else {
-        toast.error("Invalid credentials. Please check your email and password.");
-      }
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An error occurred. Please try again.");
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handlePasswordReset = (e: React.FormEvent) => {
@@ -118,6 +129,9 @@ export function LoginForm() {
               onChange={handleEmailChange}
               required
             />
+            {email && !validateEmail(email) && (
+              <p className="text-xs text-red-500 mt-1">Please use a Gmail account (@gmail.com)</p>
+            )}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">

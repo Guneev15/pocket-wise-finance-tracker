@@ -103,7 +103,7 @@
   }
   
   .stat-card {
-    @apply px-4 py-5 sm:p-6 bg-white shadow rounded-lg overflow-hidden;
+    @apply px-4 py-5 sm:p-6 bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300;
   }
   
   .stat-card-title {
@@ -113,4 +113,76 @@
   .stat-card-value {
     @apply mt-1 text-2xl md:text-3xl font-semibold tracking-tight;
   }
+  
+  /* Animations */
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-in-out;
+  }
+  
+  .animate-scaleIn {
+    animation: scaleIn 0.3s ease-in-out;
+  }
+  
+  /* Page transitions */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+  }
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Transition effects for common elements */
+button, a, input, select {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Card hover animations */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }

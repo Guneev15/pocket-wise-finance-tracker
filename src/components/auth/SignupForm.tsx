@@ -35,44 +35,53 @@ export function SignupForm() {
     
     setIsLoading(true);
     
-    // Get existing users or initialize empty array
-    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    
-    // Check if email already exists
-    if (existingUsers.some((user: any) => user.email === email)) {
-      toast.error("An account with this email already exists");
-      setIsLoading(false);
-      return;
-    }
-    
-    // Create new user with empty data
-    const newUser = { 
-      id: Date.now().toString(), 
-      name, 
-      email, 
-      password,
-      transactions: [],
-      budgets: [],
-      categories: []
-    };
-    
-    setTimeout(() => {
-      // Save to users array
-      existingUsers.push(newUser);
-      localStorage.setItem("users", JSON.stringify(existingUsers));
+    try {
+      // Get existing users or initialize empty array
+      const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
       
-      // Set as current user
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("user", JSON.stringify({ 
-        id: newUser.id, 
+      // Check if email already exists
+      if (existingUsers.some((user: any) => user.email === email)) {
+        toast.error("An account with this email already exists");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Create new user with empty financial data
+      const newUser = { 
+        id: Date.now().toString(), 
         name, 
-        email 
-      }));
+        email, 
+        password,
+        transactions: [],
+        budgets: [],
+        categories: [],
+        balance: 0,
+        income: 0,
+        expenses: 0
+      };
       
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
+      setTimeout(() => {
+        // Save to users array
+        existingUsers.push(newUser);
+        localStorage.setItem("users", JSON.stringify(existingUsers));
+        
+        // Set as current user
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("user", JSON.stringify({ 
+          id: newUser.id, 
+          name, 
+          email 
+        }));
+        
+        toast.success("Account created successfully!");
+        navigate("/dashboard");
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("An error occurred. Please try again.");
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
