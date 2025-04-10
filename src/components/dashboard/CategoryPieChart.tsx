@@ -1,17 +1,58 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-
-const categoryData = [
-  { name: "Housing", value: 1200, color: "#22c55e" },
-  { name: "Food", value: 600, color: "#3b82f6" },
-  { name: "Transportation", value: 300, color: "#f97316" },
-  { name: "Entertainment", value: 200, color: "#a855f7" },
-  { name: "Utilities", value: 500, color: "#ec4899" },
-  { name: "Others", value: 400, color: "#64748b" },
-];
+import { useEffect, useState } from "react";
 
 export function CategoryPieChart() {
+  const [categoryData, setCategoryData] = useState([
+    { name: "No Data", value: 1, color: "#cbd5e1" }
+  ]);
+
+  useEffect(() => {
+    // Get current user from localStorage
+    const currentUser = localStorage.getItem("user");
+    if (!currentUser) return;
+
+    const user = JSON.parse(currentUser);
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const userData = users.find((u: any) => u.id === user.id);
+    
+    // If user has transaction data, update chart
+    if (userData && userData.transactions && userData.transactions.length > 0) {
+      // Group transactions by category
+      const categoryMap = new Map();
+      const colors = ["#22c55e", "#3b82f6", "#f97316", "#a855f7", "#ec4899", "#64748b"];
+      
+      let colorIndex = 0;
+      userData.categories.forEach((cat: any) => {
+        categoryMap.set(cat.id, {
+          name: cat.name,
+          value: 0,
+          color: cat.color || colors[colorIndex % colors.length]
+        });
+        colorIndex++;
+      });
+      
+      // Sum amounts by category for expense transactions
+      userData.transactions
+        .filter((t: any) => t.type === 'expense')
+        .forEach((t: any) => {
+          if (categoryMap.has(t.categoryId)) {
+            const category = categoryMap.get(t.categoryId);
+            category.value += parseFloat(t.amount);
+          }
+        });
+      
+      // Convert to array and filter out categories with zero amount
+      const chartData = Array.from(categoryMap.values())
+        .filter(cat => cat.value > 0);
+      
+      if (chartData.length > 0) {
+        setCategoryData(chartData);
+      }
+    }
+  }, []);
+
   return (
     <Card className="col-span-2">
       <CardHeader>
@@ -28,7 +69,7 @@ export function CategoryPieChart() {
               outerRadius={90}
               paddingAngle={2}
               dataKey="value"
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) => percent ? `${name} ${(percent * 100).toFixed(0)}%` : `${name}`}
               labelLine={false}
             >
               {categoryData.map((entry, index) => (

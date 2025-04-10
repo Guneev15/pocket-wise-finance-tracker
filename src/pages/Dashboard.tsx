@@ -22,25 +22,25 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Balance"
-          value="₹4,250.00"
+          value="₹0.00"
           icon={<IndianRupee className="h-4 w-4 text-primary" />}
-          trend={{ value: 12, isPositive: true }}
+          trend={{ value: 0, isPositive: true }}
         />
         <StatCard
           title="Month's Income"
-          value="₹8,350.00"
+          value="₹0.00"
           icon={<ArrowUp className="h-4 w-4 text-budget-green-600" />}
-          trend={{ value: 5, isPositive: true }}
+          trend={{ value: 0, isPositive: true }}
         />
         <StatCard
           title="Month's Expenses"
-          value="₹4,100.00"
+          value="₹0.00"
           icon={<ArrowDown className="h-4 w-4 text-budget-red-600" />}
-          trend={{ value: 3, isPositive: false }}
+          trend={{ value: 0, isPositive: false }}
         />
         <StatCard
           title="Budget Status"
-          value="75% Used"
+          value="0% Used"
           icon={<CreditCard className="h-4 w-4 text-budget-blue-600" />}
         />
       </div>
@@ -56,9 +56,6 @@ export default function Dashboard() {
       
       <div className="grid gap-6 md:grid-cols-4">
         <RecentTransactions />
-        <div className="col-span-4 md:col-span-2">
-          <BudgetProgressList />
-        </div>
       </div>
     </div>
   );
