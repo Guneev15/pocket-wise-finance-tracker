@@ -25,25 +25,54 @@ export function LoginForm() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const navigate = useNavigate();
 
+  const validateEmail = (email: string) => {
+    // Check if email ends with @gmail.com
+    return email.toLowerCase().endsWith('@gmail.com');
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+  };
+
+  const handleResetEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setResetEmail(e.target.value);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate Gmail address
+    if (!validateEmail(email)) {
+      toast.error("Please use a valid Gmail account (@gmail.com)");
+      return;
+    }
+
     setIsLoading(true);
     
-    // In a real app, this would be an API call
+    // Check for credentials in localStorage
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const user = users.find((u: any) => u.email === email && u.password === password);
+    
     setTimeout(() => {
-      if (email === "demo@example.com" && password === "password") {
+      if (user || (email === "demo@gmail.com" && password === "password")) {
         // Store authentication state
         localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("user", JSON.stringify({ 
-          id: "1", 
-          name: "Demo User", 
-          email: "demo@example.com" 
-        }));
+        
+        // If demo account, create a standard user object
+        if (email === "demo@gmail.com" && password === "password") {
+          localStorage.setItem("user", JSON.stringify({ 
+            id: "demo1", 
+            name: "Demo User", 
+            email: "demo@gmail.com" 
+          }));
+        } else {
+          localStorage.setItem("user", JSON.stringify(user));
+        }
         
         toast.success("Login successful!");
         navigate("/dashboard");
       } else {
-        toast.error("Invalid credentials. Try demo@example.com / password");
+        toast.error("Invalid credentials. Please check your email and password.");
       }
       setIsLoading(false);
     }, 1000);
@@ -51,6 +80,13 @@ export function LoginForm() {
 
   const handlePasswordReset = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate Gmail address for reset
+    if (!validateEmail(resetEmail)) {
+      toast.error("Please use a valid Gmail account (@gmail.com)");
+      return;
+    }
+    
     setIsResetting(true);
     
     // In a real app, this would be an API call to send reset email
@@ -65,7 +101,9 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl text-center">Login</CardTitle>
+        <CardTitle className="text-2xl text-center">
+          <a onClick={() => navigate('/')} className="cursor-pointer">BudgetWise</a>
+        </CardTitle>
         <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -75,9 +113,9 @@ export function LoginForm() {
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="Enter your Gmail address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               required
             />
           </div>
@@ -94,7 +132,7 @@ export function LoginForm() {
                   <DialogHeader>
                     <DialogTitle>Reset password</DialogTitle>
                     <DialogDescription>
-                      Enter your email address and we'll send you a link to reset your password.
+                      Enter your Gmail address and we'll send you a link to reset your password.
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handlePasswordReset}>
@@ -104,9 +142,9 @@ export function LoginForm() {
                         <Input
                           id="reset-email"
                           type="email"
-                          placeholder="Enter your email"
+                          placeholder="Enter your Gmail address"
                           value={resetEmail}
-                          onChange={(e) => setResetEmail(e.target.value)}
+                          onChange={handleResetEmailChange}
                           required
                         />
                       </div>
@@ -142,7 +180,7 @@ export function LoginForm() {
           </Button>
         </div>
         <div className="text-xs text-center text-muted-foreground">
-          <strong>Demo Access:</strong> Email: demo@example.com / Password: password
+          <strong>Demo Access:</strong> Email: demo@gmail.com / Password: password
         </div>
       </CardFooter>
     </Card>

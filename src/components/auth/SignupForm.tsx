@@ -15,8 +15,18 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const validateEmail = (email: string) => {
+    // Check if email ends with @gmail.com
+    return email.toLowerCase().endsWith('@gmail.com');
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateEmail(email)) {
+      toast.error("Please use a valid Gmail account (@gmail.com)");
+      return;
+    }
     
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
@@ -25,12 +35,36 @@ export function SignupForm() {
     
     setIsLoading(true);
     
-    // In a real app, this would be an API call
+    // Get existing users or initialize empty array
+    const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
+    
+    // Check if email already exists
+    if (existingUsers.some((user: any) => user.email === email)) {
+      toast.error("An account with this email already exists");
+      setIsLoading(false);
+      return;
+    }
+    
+    // Create new user with empty data
+    const newUser = { 
+      id: Date.now().toString(), 
+      name, 
+      email, 
+      password,
+      transactions: [],
+      budgets: [],
+      categories: []
+    };
+    
     setTimeout(() => {
-      // Store authentication state
+      // Save to users array
+      existingUsers.push(newUser);
+      localStorage.setItem("users", JSON.stringify(existingUsers));
+      
+      // Set as current user
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("user", JSON.stringify({ 
-        id: "1", 
+        id: newUser.id, 
         name, 
         email 
       }));
@@ -44,7 +78,9 @@ export function SignupForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
+        <CardTitle className="text-2xl text-center">
+          <a onClick={() => navigate('/')} className="cursor-pointer">BudgetWise</a>
+        </CardTitle>
         <CardDescription className="text-center">Enter your details to create your account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -64,11 +100,14 @@ export function SignupForm() {
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="Enter your Gmail address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+            {email && !validateEmail(email) && (
+              <p className="text-xs text-red-500 mt-1">Please use a Gmail account (@gmail.com)</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>

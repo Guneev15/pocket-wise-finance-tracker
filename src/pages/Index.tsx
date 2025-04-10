@@ -13,7 +13,7 @@ export default function Index() {
   return <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
       <header className="px-4 py-6 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-white">BudgetWise</h1>
+          <h1 className="text-2xl font-bold text-white cursor-pointer" onClick={() => navigate("/")}>BudgetWise</h1>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="ghost" className="text-white hover:bg-budget-green-700" onClick={() => navigate("/login")}>
@@ -102,7 +102,7 @@ export default function Index() {
       <footer className="px-4 py-12 sm:px-6 lg:px-8 bg-gray-100">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="mb-6 md:mb-0">
-            <h2 className="text-xl font-bold text-gray-900">BudgetWise</h2>
+            <h2 className="text-xl font-bold text-gray-900 cursor-pointer" onClick={() => navigate("/")}>BudgetWise</h2>
             <p className="text-gray-600 mt-2">© 2023 BudgetWise. All rights reserved.</p>
           </div>
           <div className="flex space-x-6">
