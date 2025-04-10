@@ -99,11 +99,11 @@
 
 @layer components {
   .budget-card {
-    @apply bg-white rounded-lg shadow-md overflow-hidden relative hover:shadow-lg transition-shadow duration-300;
+    @apply bg-white rounded-lg shadow-md overflow-hidden relative hover:shadow-lg transition-all duration-300 hover:scale-[1.02];
   }
   
   .stat-card {
-    @apply px-4 py-5 sm:p-6 bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300;
+    @apply px-4 py-5 sm:p-6 bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.01];
   }
   
   .stat-card-title {
@@ -114,17 +114,40 @@
     @apply mt-1 text-2xl md:text-3xl font-semibold tracking-tight;
   }
   
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(126, 186, 146, 0.5) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(126, 186, 146, 0.5);
+    border-radius: 20px;
+  }
+  
   /* Animations */
   .animate-fadeIn {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.4s ease-in-out;
   }
   
   .animate-slideIn {
-    animation: slideIn 0.3s ease-in-out;
+    animation: slideIn 0.5s ease-in-out;
   }
   
   .animate-scaleIn {
-    animation: scaleIn 0.3s ease-in-out;
+    animation: scaleIn 0.4s ease-in-out;
+  }
+  
+  .animate-bounce-light {
+    animation: bounceLight 2s infinite;
   }
   
   /* Page transitions */
@@ -172,6 +195,15 @@
   }
 }
 
+@keyframes bounceLight {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
 /* Transition effects for common elements */
 button, a, input, select {
   transition: all 0.2s ease-in-out;
@@ -185,4 +217,24 @@ button, a, input, select {
 .card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Pulse animation for notifications */
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Fancy input focus animation */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 2px rgba(72, 187, 120, 0.2);
+  outline: none;
 }

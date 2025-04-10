@@ -14,15 +14,15 @@ export default function Login() {
   }, []);
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-budget-green-100 to-budget-green-200 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-budget-green-100 to-budget-green-200 p-4 sm:p-6 md:p-8">
       <div 
-        className={`max-w-md w-full transition-all duration-500 ease-out ${
+        className={`max-w-md w-full transition-all duration-700 ease-out ${
           isAnimated ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         }`}
       >
         <div className="text-center mb-8">
           <h1 
-            className="text-3xl font-bold text-budget-green-900 cursor-pointer hover:text-budget-green-700 transition-colors duration-300" 
+            className="text-3xl font-bold text-budget-green-900 cursor-pointer hover:text-budget-green-700 transition-colors duration-300 hover:scale-105 transform" 
             onClick={() => navigate("/")}
           >
             BudgetWise

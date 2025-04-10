@@ -54,7 +54,16 @@ export function SignupForm() {
         password,
         transactions: [],
         budgets: [],
-        categories: [],
+        categories: [
+          { id: "cat1", name: "Housing", icon: "home", color: "#4CAF50" },
+          { id: "cat2", name: "Food", icon: "utensils", color: "#2196F3" },
+          { id: "cat3", name: "Transportation", icon: "car", color: "#FF9800" },
+          { id: "cat4", name: "Entertainment", icon: "film", color: "#9C27B0" },
+          { id: "cat5", name: "Utilities", icon: "zap", color: "#607D8B" },
+          { id: "cat6", name: "Shopping", icon: "shopping-bag", color: "#E91E63" },
+          { id: "cat7", name: "Healthcare", icon: "activity", color: "#00BCD4" },
+          { id: "cat8", name: "Personal", icon: "user", color: "#795548" }
+        ],
         balance: 0,
         income: 0,
         expenses: 0
@@ -85,10 +94,10 @@ export function SignupForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
+    <Card className="w-full max-w-md mx-auto shadow-lg animate-fadeIn">
+      <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center">
-          <a onClick={() => navigate('/')} className="cursor-pointer">BudgetWise</a>
+          <a onClick={() => navigate('/')} className="cursor-pointer hover:text-budget-green-700 transition-colors">BudgetWise</a>
         </CardTitle>
         <CardDescription className="text-center">Enter your details to create your account</CardDescription>
       </CardHeader>
@@ -102,6 +111,7 @@ export function SignupForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
           </div>
           <div className="space-y-2">
@@ -113,9 +123,10 @@ export function SignupForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
             {email && !validateEmail(email) && (
-              <p className="text-xs text-red-500 mt-1">Please use a Gmail account (@gmail.com)</p>
+              <p className="text-xs text-red-500 mt-1 animate-fadeIn">Please use a Gmail account (@gmail.com)</p>
             )}
           </div>
           <div className="space-y-2">
@@ -127,6 +138,7 @@ export function SignupForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
           </div>
           <div className="space-y-2">
@@ -138,9 +150,10 @@ export function SignupForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full transition-all duration-300 hover:scale-[1.02]" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Sign up"}
           </Button>
         </form>
@@ -148,7 +161,7 @@ export function SignupForm() {
       <CardFooter className="flex justify-center">
         <div className="text-center text-sm">
           Already have an account?{" "}
-          <Button variant="link" className="p-0" onClick={() => navigate("/login")}>
+          <Button variant="link" className="p-0 hover:text-budget-green-700" onClick={() => navigate("/login")}>
             Log in
           </Button>
         </div>

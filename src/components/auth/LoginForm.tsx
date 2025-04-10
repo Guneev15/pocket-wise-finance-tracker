@@ -52,10 +52,10 @@ export function LoginForm() {
     try {
       // Check for credentials in localStorage
       const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const user = users.find((u: any) => u.email === email);
+      const user = users.find((u: any) => u.email === email && u.password === password);
       
       setTimeout(() => {
-        if (user && user.password === password) {
+        if (user) {
           // Store authentication state
           localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("user", JSON.stringify({ 
@@ -110,10 +110,10 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
+    <Card className="w-full max-w-md mx-auto shadow-lg animate-fadeIn">
+      <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center">
-          <a onClick={() => navigate('/')} className="cursor-pointer">BudgetWise</a>
+          <a onClick={() => navigate('/')} className="cursor-pointer hover:text-budget-green-700 transition-colors">BudgetWise</a>
         </CardTitle>
         <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
       </CardHeader>
@@ -128,9 +128,10 @@ export function LoginForm() {
               value={email}
               onChange={handleEmailChange}
               required
+              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
             {email && !validateEmail(email) && (
-              <p className="text-xs text-red-500 mt-1">Please use a Gmail account (@gmail.com)</p>
+              <p className="text-xs text-red-500 mt-1 animate-fadeIn">Please use a Gmail account (@gmail.com)</p>
             )}
           </div>
           <div className="space-y-2">
@@ -138,7 +139,7 @@ export function LoginForm() {
               <Label htmlFor="password">Password</Label>
               <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="link" className="p-0 h-auto text-sm font-normal text-primary">
+                  <Button variant="link" className="p-0 h-auto text-sm font-normal hover:text-budget-green-700">
                     Forgot password?
                   </Button>
                 </DialogTrigger>
@@ -164,7 +165,7 @@ export function LoginForm() {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button type="submit" disabled={isResetting}>
+                      <Button type="submit" disabled={isResetting} className="transition-all duration-300 hover:scale-[1.02]">
                         {isResetting ? "Sending..." : "Send reset link"}
                       </Button>
                     </DialogFooter>
@@ -179,9 +180,10 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full transition-all duration-300 hover:scale-[1.02]" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Log in"}
           </Button>
         </form>
@@ -189,7 +191,7 @@ export function LoginForm() {
       <CardFooter className="flex flex-col space-y-4">
         <div className="text-center text-sm">
           Don't have an account?{" "}
-          <Button variant="link" className="p-0" onClick={() => navigate("/signup")}>
+          <Button variant="link" className="p-0 hover:text-budget-green-700" onClick={() => navigate("/signup")}>
             Sign up
           </Button>
         </div>
