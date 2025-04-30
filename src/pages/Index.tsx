@@ -1,15 +1,20 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+
 export default function Index() {
   const navigate = useNavigate();
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  
+  // Check session instead of localStorage
+  const session = localStorage.getItem("session");
+  const isLoggedIn = !!session && new Date(JSON.parse(session).expiresAt) > new Date();
+
   useEffect(() => {
     if (isLoggedIn) {
       navigate("/dashboard");
     }
   }, [isLoggedIn, navigate]);
+
   return <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
       <header className="px-4 py-6 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center">

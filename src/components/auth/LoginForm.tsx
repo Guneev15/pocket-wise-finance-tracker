@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { auth } from "@/services/auth";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -14,46 +14,36 @@ export function LoginForm() {
   const navigate = useNavigate();
 
   const validateEmail = (email: string) => {
-    return email.toLowerCase().endsWith('@gmail.com');
+    // More flexible email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateEmail(email)) {
-      toast.error("Please use a valid Gmail account (@gmail.com)");
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
+    if (!password) {
+      toast.error("Please enter your password");
       return;
     }
     
     setIsLoading(true);
     
-    setTimeout(() => {
-      try {
-        // Get existing users
-        const users = JSON.parse(localStorage.getItem("users") || "[]");
-        const user = users.find((u: any) => u.email === email && u.password === password);
-        
-        if (user) {
-          // Set user as logged in
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("user", JSON.stringify({
-            id: user.id,
-            name: user.name,
-            email: user.email
-          }));
-          
-          toast.success("Login successful!");
-          navigate("/dashboard");
-        } else {
-          toast.error("Invalid email or password");
-        }
-      } catch (error) {
-        console.error("Login error:", error);
-        toast.error("An error occurred. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    }, 1000);
+    try {
+      await auth.login(email, password);
+      toast.success("Login successful!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.message || "An error occurred during login. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,14 +61,14 @@ export function LoginForm() {
             <Input
               id="email"
               type="email"
-              placeholder="Enter your Gmail address"
+              placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
             {email && !validateEmail(email) && (
-              <p className="text-xs text-red-500 mt-1 animate-fadeIn">Please use a Gmail account (@gmail.com)</p>
+              <p className="text-xs text-red-500 mt-1 animate-fadeIn">Please enter a valid email address</p>
             )}
           </div>
           <div className="space-y-2">
@@ -98,7 +88,7 @@ export function LoginForm() {
               className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
           </div>
-          <Button type="submit" className="w-full transition-all duration-300 hover:scale-[1.02]" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Log in"}
           </Button>
         </form>

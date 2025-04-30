@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { auth } from "@/services/auth";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -43,14 +43,15 @@ const passwordFormSchema = z.object({
 });
 
 export function ProfileSettings() {
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
   const [isLoading, setIsLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: userData.name || "",
-      email: userData.email || "",
+      name: "",
+      email: "",
     },
   });
 
@@ -63,32 +64,81 @@ export function ProfileSettings() {
     },
   });
 
-  function onProfileSubmit(values: z.infer<typeof profileFormSchema>) {
+  // Load user data
+  useState(() => {
+    const loadUserData = async () => {
+      try {
+        const user = await auth.getCurrentUser();
+        if (user) {
+          profileForm.reset({
+            name: user.name,
+            email: user.email,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+        toast.error("Failed to load user data");
+      }
+    };
+    loadUserData();
+  }, []);
+
+  async function onProfileSubmit(values: z.infer<typeof profileFormSchema>) {
     setIsLoading(true);
+    setProfileError("");
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      // Update user data in localStorage
-      localStorage.setItem("user", JSON.stringify({
-        ...userData,
+    try {
+      // In a real app, this would be an API call
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const session = JSON.parse(localStorage.getItem("session") || "{}");
+      const userIndex = users.findIndex((u: any) => u.id === session.userId);
+      
+      if (userIndex === -1) {
+        throw new Error("User not found");
+      }
+      
+      // Update user data
+      users[userIndex] = {
+        ...users[userIndex],
         name: values.name,
-        email: values.email,
+        email: values.email.toLowerCase(),
+      };
+      
+      // Update session
+      session.name = values.name;
+      session.email = values.email.toLowerCase();
+      
+      localStorage.setItem("users", JSON.stringify(users));
+      localStorage.setItem("session", JSON.stringify(session));
+      localStorage.setItem("user", JSON.stringify({
+        id: session.userId,
+        name: values.name,
+        email: values.email.toLowerCase(),
       }));
       
       toast.success("Profile updated successfully!");
+    } catch (error: any) {
+      console.error("Profile update error:", error);
+      setProfileError(error.message || "Failed to update profile");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
-  function onPasswordSubmit(values: z.infer<typeof passwordFormSchema>) {
+  async function onPasswordSubmit(values: z.infer<typeof passwordFormSchema>) {
     setIsLoading(true);
+    setPasswordError("");
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
+    try {
+      await auth.changePassword(values.currentPassword, values.newPassword);
       toast.success("Password updated successfully!");
       passwordForm.reset();
+    } catch (error: any) {
+      console.error("Password update error:", error);
+      setPasswordError(error.message || "Failed to update password");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -130,6 +180,10 @@ export function ProfileSettings() {
                   </FormItem>
                 )}
               />
+              
+              {profileError && (
+                <p className="text-sm text-red-500">{profileError}</p>
+              )}
               
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Saving..." : "Save Profile"}
@@ -184,6 +238,10 @@ export function ProfileSettings() {
                   </FormItem>
                 )}
               />
+              
+              {passwordError && (
+                <p className="text-sm text-red-500">{passwordError}</p>
+              )}
               
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Updating..." : "Update Password"}

@@ -1,19 +1,38 @@
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { auth } from "@/services/auth";
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!isLoggedIn) {
-      navigate("/login");
-    }
+    const checkAuth = async () => {
+      try {
+        const user = await auth.getCurrentUser();
+        if (!user) {
+          navigate("/login");
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        navigate("/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-budget-green-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

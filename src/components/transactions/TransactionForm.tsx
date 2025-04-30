@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,9 +26,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { transactionService } from "@/services/transactions";
+import { auth } from "@/services/auth";
 
 const categoryOptions = [
   { value: "income", label: "Income" },
@@ -65,6 +65,7 @@ const formSchema = z.object({
 
 export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,17 +78,33 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, this would be an API call
-    console.log("Transaction values:", values);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Transaction added successfully!");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setIsSubmitting(true);
+      
+      const user = await auth.getCurrentUser();
+      if (!user) {
+        toast.error('Please log in to add transactions');
+        return;
+      }
+
+      await transactionService.addTransaction(user.id, {
+        amount: parseFloat(values.amount),
+        categoryId: values.category,
+        description: values.description || '',
+        date: values.date.toISOString(),
+        type: values.type
+      });
+
       form.reset();
       setIsOpen(false);
       if (onSuccess) onSuccess();
-    }, 500);
+    } catch (error) {
+      console.error('Error submitting transaction:', error);
+      toast.error('Failed to add transaction');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -172,7 +189,6 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                         onSelect={field.onChange}
                         disabled={(date) => date > new Date()}
                         initialFocus
-                        className="p-3 pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -224,7 +240,9 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save Transaction</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Transaction"}
+              </Button>
             </div>
           </form>
         </Form>

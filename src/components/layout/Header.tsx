@@ -1,22 +1,42 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Menu, Home, PlusCircle, PieChart, BarChart, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { auth } from "@/services/auth";
+import { User } from "@/services/types";
 
 export function Header() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const currentUser = await auth.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error loading user:", error);
+      }
+    };
+    loadUser();
+  }, []);
   
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
-    toast.success("Logged out successfully");
-    navigate("/login");
+  const handleLogout = async () => {
+    setIsLoading(true);
+    try {
+      await auth.logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const menuItems = [
@@ -63,9 +83,10 @@ export function Header() {
                         handleLogout();
                         setIsOpen(false);
                       }}
+                      disabled={isLoading}
                     >
                       <LogOut className="mr-3 h-5 w-5" />
-                      Logout
+                      {isLoading ? "Logging out..." : "Logout"}
                     </Button>
                   </div>
                 </div>
@@ -80,7 +101,7 @@ export function Header() {
           <div className="flex items-center">
             <div className="hidden md:ml-4 md:flex-shrink-0 md:flex md:items-center">
               <div className="text-sm font-medium text-gray-700 mr-4">
-                Welcome, {user.name || "User"}
+                Welcome, {user?.name || "User"}
               </div>
             </div>
           </div>
