@@ -1,18 +1,29 @@
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+=======
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Menu, Home, PlusCircle, PieChart, BarChart, Settings } from "lucide-react";
 import { toast } from "sonner";
+<<<<<<< HEAD
 import { auth } from "@/services/auth";
 import { User } from "@/services/types";
+=======
+import { authService } from "@/services/auth";
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
 export function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   
+<<<<<<< HEAD
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -37,6 +48,17 @@ export function Header() {
     } finally {
       setIsLoading(false);
     }
+=======
+  const user = authService.getCurrentUser();
+  
+  const handleLogout = () => {
+    // Store current path before logout
+    localStorage.setItem('previousPath', location.pathname);
+    
+    authService.logout();
+    toast.success("Logged out successfully");
+    navigate("/login");
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
   };
   
   const menuItems = [

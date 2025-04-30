@@ -1,21 +1,35 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
+=======
+import { authService } from "@/services/auth";
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
 export default function Index() {
   const navigate = useNavigate();
   
+<<<<<<< HEAD
   // Check session instead of localStorage
   const session = localStorage.getItem("session");
   const isLoggedIn = !!session && new Date(JSON.parse(session).expiresAt) > new Date();
 
+=======
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
   useEffect(() => {
-    if (isLoggedIn) {
+    if (authService.isAuthenticated()) {
       navigate("/dashboard");
     }
+<<<<<<< HEAD
   }, [isLoggedIn, navigate]);
 
   return <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
+=======
+  }, [navigate]);
+
+  return (
+    <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
       <header className="px-4 py-6 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-2xl font-bold text-white cursor-pointer" onClick={() => navigate("/")}>BudgetWise</h1>
@@ -111,11 +125,12 @@ export default function Index() {
             <p className="text-gray-600 mt-2">© 2023 BudgetWise. All rights reserved.</p>
           </div>
           <div className="flex space-x-6">
-            <a href="#" className="text-gray-600 hover:text-gray-900">Terms</a>
-            <a href="#" className="text-gray-600 hover:text-gray-900">Privacy</a>
-            <a href="#" className="text-gray-600 hover:text-gray-900">Contact</a>
+            <Link to="/terms" className="text-gray-600 hover:text-gray-900">Terms</Link>
+            <Link to="/privacy" className="text-gray-600 hover:text-gray-900">Privacy</Link>
+            <Link to="/contact" className="text-gray-600 hover:text-gray-900">Contact</Link>
           </div>
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 }
