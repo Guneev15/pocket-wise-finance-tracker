@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 import { useState } from "react";
+=======
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -27,9 +32,14 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+<<<<<<< HEAD
 import { Textarea } from "@/components/ui/textarea";
 import { transactionService } from "@/services/transactions";
 import { auth } from "@/services/auth";
+=======
+import { transactionService } from "@/services/transactions";
+import { authService } from "@/services/auth";
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
 const categoryOptions = [
   { value: "income", label: "Income" },
@@ -63,9 +73,18 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
-export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
+interface TransactionFormProps {
+  onSuccess?: () => void;
+}
+
+export function TransactionForm({ onSuccess }: TransactionFormProps) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+<<<<<<< HEAD
   const [isSubmitting, setIsSubmitting] = useState(false);
+=======
+  const [isLoading, setIsLoading] = useState(false);
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,6 +97,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
+<<<<<<< HEAD
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
@@ -106,6 +126,55 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
       setIsSubmitting(false);
     }
   }
+=======
+  useEffect(() => {
+    // Check if user is authenticated when dialog opens
+    if (isOpen && !authService.isAuthenticated()) {
+      toast.error("Please log in to add transactions");
+      setIsOpen(false);
+      navigate("/login");
+    }
+  }, [isOpen, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const user = authService.getCurrentUser();
+    if (!user) {
+      toast.error("You must be logged in to add transactions");
+      navigate("/login");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const result = await transactionService.addTransaction({
+        type: form.getValues("type"),
+        amount: parseFloat(form.getValues("amount")),
+        date: format(form.getValues("date"), "yyyy-MM-dd"),
+        category: form.getValues("category"),
+        description: form.getValues("description"),
+        userId: user.id
+      });
+      
+      if (result.success) {
+        toast.success("Transaction added successfully!");
+        form.reset();
+        setIsOpen(false);
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        toast.error(result.message || "Failed to add transaction");
+      }
+    } catch (error) {
+      toast.error("An error occurred while adding the transaction");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -117,7 +186,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
           <DialogTitle>Add New Transaction</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <FormField
               control={form.control}
               name="type"
@@ -240,8 +309,13 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
+<<<<<<< HEAD
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Saving..." : "Save Transaction"}
+=======
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Transaction"}
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
               </Button>
             </div>
           </form>

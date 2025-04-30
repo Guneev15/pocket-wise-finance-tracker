@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+<<<<<<< HEAD
 import { auth } from "@/services/auth";
+=======
+import { authService } from "@/services/auth";
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
 export function SignupForm() {
   const [name, setName] = useState("");
@@ -41,12 +45,24 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
+<<<<<<< HEAD
       await auth.register(name, email, password);
       toast.success("Account created successfully!");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "An error occurred. Please try again.");
+=======
+      const result = await authService.register(name, email, password);
+      if (result.success) {
+        toast.success("Account created successfully! Please log in.");
+        navigate("/login");
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("An error occurred during registration");
+>>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
     } finally {
       setIsLoading(false);
     }
