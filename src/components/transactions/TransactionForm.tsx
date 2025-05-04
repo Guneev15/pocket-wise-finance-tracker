@@ -1,19 +1,14 @@
-<<<<<<< HEAD
-import { useState } from "react";
-=======
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -32,14 +27,10 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-<<<<<<< HEAD
 import { Textarea } from "@/components/ui/textarea";
-import { transactionService } from "@/services/transactions";
-import { auth } from "@/services/auth";
-=======
-import { transactionService } from "@/services/transactions";
+import { transactionService, TransactionResult } from "@/services/transactions";
 import { authService } from "@/services/auth";
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
+import { log } from "console";
 
 const categoryOptions = [
   { value: "income", label: "Income" },
@@ -73,20 +64,18 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
+type FormData = z.infer<typeof formSchema>;
+
 interface TransactionFormProps {
-  onSuccess?: () => void;
+  onSuccess?: ()=>Promise<void> 
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-<<<<<<< HEAD
-  const [isSubmitting, setIsSubmitting] = useState(false);
-=======
   const [isLoading, setIsLoading] = useState(false);
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
-  
-  const form = useForm<z.infer<typeof formSchema>>({
+
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: "expense",
@@ -97,38 +86,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     },
   });
 
-<<<<<<< HEAD
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      setIsSubmitting(true);
-      
-      const user = await auth.getCurrentUser();
-      if (!user) {
-        toast.error('Please log in to add transactions');
-        return;
-      }
-
-      await transactionService.addTransaction(user.id, {
-        amount: parseFloat(values.amount),
-        categoryId: values.category,
-        description: values.description || '',
-        date: values.date.toISOString(),
-        type: values.type
-      });
-
-      form.reset();
-      setIsOpen(false);
-      if (onSuccess) onSuccess();
-    } catch (error) {
-      console.error('Error submitting transaction:', error);
-      toast.error('Failed to add transaction');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-=======
   useEffect(() => {
-    // Check if user is authenticated when dialog opens
     if (isOpen && !authService.isAuthenticated()) {
       toast.error("Please log in to add transactions");
       setIsOpen(false);
@@ -136,45 +94,73 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     }
   }, [isOpen, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const user = authService.getCurrentUser();
-    if (!user) {
+  const handleSubmit = async (data: FormData) => {
+    let user = null;
+    try {
+      const maybePromise = authService.getCurrentUser();
+      user =
+        typeof maybePromise === "object" && typeof (maybePromise as any).then === "function"
+          ? await maybePromise
+          : maybePromise;
+    } catch {
+      user = null;
+    }
+    if (!user || !user.id) {
       toast.error("You must be logged in to add transactions");
       navigate("/login");
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const result = await transactionService.addTransaction({
-        type: form.getValues("type"),
-        amount: parseFloat(form.getValues("amount")),
-        date: format(form.getValues("date"), "yyyy-MM-dd"),
-        category: form.getValues("category"),
-        description: form.getValues("description"),
-        userId: user.id
-      });
+      // Ensure all required data is present and valid
+      if (!data.category) {
+        toast.error("Please select a category");
+        setIsLoading(false);
+        return;
+      }
       
+      // Show loading toast
+      const loadingToastId = toast.loading("Adding transaction...");
+      
+      const result = await transactionService.addTransaction({
+        type: data.type,
+        amount: parseFloat(data.amount),
+        date: format(data.date, "yyyy-MM-dd"),
+        category: data.category || "",
+        description: data.description || "",
+        userId: user.id,
+      });
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToastId);
+
       if (result.success) {
         toast.success("Transaction added successfully!");
         form.reset();
         setIsOpen(false);
+        
+        // Ensure the onSuccess callback is called to refresh the transaction list
+        
         if (onSuccess) {
-          onSuccess();
+          console.log("Calling onSuccess callback");
+          setTimeout(async() => {
+             await onSuccess();
+          }, 100); // Small delay to ensure state updates have processed
         }
       } else {
         toast.error(result.message || "Failed to add transaction");
+        console.error("Transaction error:", result.message);
       }
     } catch (error) {
-      toast.error("An error occurred while adding the transaction");
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      toast.error(errorMessage);
+      console.error("Transaction submission error:", error);
     } finally {
       setIsLoading(false);
     }
   };
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -186,14 +172,18 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           <DialogTitle>Add New Transaction</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+            autoComplete="off"
+          >
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Transaction Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select transaction type" />
@@ -208,7 +198,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="amount"
@@ -218,15 +208,20 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   <FormControl>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5">₹</span>
-                      <Input {...field} className="pl-7" placeholder="0.00" />
+                      <Input
+                        {...field}
+                        className="pl-7"
+                        placeholder="0.00"
+                        autoComplete="off"
+                      />
                     </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <FormField
+
+            <Controller
               control={form.control}
               name="date"
               render={({ field }) => (
@@ -236,6 +231,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
+                          type="button"
                           variant={"outline"}
                           className={cn(
                             "w-full pl-3 text-left font-normal",
@@ -265,7 +261,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="category"
@@ -290,7 +286,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -298,24 +294,23 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea {...field} placeholder="Add notes about this transaction" />
+                    <Textarea
+                      {...field}
+                      placeholder="Add notes about this transaction"
+                      autoComplete="off"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-<<<<<<< HEAD
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Transaction"}
-=======
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Saving..." : "Save Transaction"}
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
               </Button>
             </div>
           </form>

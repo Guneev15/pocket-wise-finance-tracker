@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../config/database';
+import { RowDataPacket } from 'mysql2';
 
 const router = Router();
 
@@ -39,17 +40,18 @@ router.post('/', async (req, res) => {
         const { category_id, amount, month } = req.body;
 
         // Validate category belongs to user
-        const [categories] = await query(
+        const categoriesResult = await query(
             'SELECT id FROM categories WHERE id = ? AND user_id = ?',
             [category_id, userId]
-        );
+        ) as RowDataPacket[];
+        const categories = Array.isArray(categoriesResult) ? categoriesResult : [];
 
         if (!Array.isArray(categories) || categories.length === 0) {
             return res.status(404).json({ message: 'Category not found' });
         }
 
         // Check if budget already exists for this category and month
-        const [existingBudgets] = await query(
+        const existingBudgets = await query(
             'SELECT id FROM budgets WHERE user_id = ? AND category_id = ? AND month = ?',
             [userId, category_id, month]
         );
@@ -58,7 +60,7 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'Budget already exists for this category and month' });
         }
 
-        const [result] = await query(
+        const result = await query(
             'INSERT INTO budgets (user_id, category_id, amount, month) VALUES (?, ?, ?, ?)',
             [userId, category_id, amount, month]
         );
@@ -66,7 +68,7 @@ router.post('/', async (req, res) => {
         const budgetId = (result as any).insertId;
 
         // Fetch the created budget with category details
-        const [budgets] = await query(
+        const budgets = await query(
             `SELECT b.*, c.name as category_name, c.type as category_type
              FROM budgets b
              JOIN categories c ON b.category_id = c.id
@@ -74,7 +76,7 @@ router.post('/', async (req, res) => {
             [budgetId]
         );
 
-        res.status(201).json(budgets[0]);
+        res.status(201).json((budgets as RowDataPacket[])[0]);
     } catch (error) {
         console.error('Error creating budget:', error);
         res.status(500).json({ message: 'Error creating budget' });
@@ -89,7 +91,7 @@ router.put('/:id', async (req, res) => {
         const { amount, month } = req.body;
 
         // Check if budget exists and belongs to user
-        const [budgets] = await query(
+        const budgets = await query(
             'SELECT id, category_id FROM budgets WHERE id = ? AND user_id = ?',
             [budgetId, userId]
         );
@@ -101,10 +103,10 @@ router.put('/:id', async (req, res) => {
         const categoryId = (budgets[0] as any).category_id;
 
         // Check if new month conflicts with existing budget
-        const [existingBudgets] = await query(
+        const existingBudgets = await query(
             'SELECT id FROM budgets WHERE user_id = ? AND category_id = ? AND month = ? AND id != ?',
             [userId, categoryId, month, budgetId]
-        );
+        ) as RowDataPacket[];
 
         if (Array.isArray(existingBudgets) && existingBudgets.length > 0) {
             return res.status(400).json({ message: 'Budget already exists for this category and month' });
@@ -116,7 +118,7 @@ router.put('/:id', async (req, res) => {
         );
 
         // Fetch the updated budget with category details
-        const [updatedBudgets] = await query(
+        const updatedBudgets = await query(
             `SELECT b.*, c.name as category_name, c.type as category_type
              FROM budgets b
              JOIN categories c ON b.category_id = c.id
@@ -124,7 +126,7 @@ router.put('/:id', async (req, res) => {
             [budgetId]
         );
 
-        res.json(updatedBudgets[0]);
+        res.json((updatedBudgets as RowDataPacket[])[0]);
     } catch (error) {
         console.error('Error updating budget:', error);
         res.status(500).json({ message: 'Error updating budget' });
@@ -137,12 +139,12 @@ router.delete('/:id', async (req, res) => {
         const userId = req.user?.userId;
         const budgetId = req.params.id;
 
-        const [result] = await query(
+        const result = await query(
             'DELETE FROM budgets WHERE id = ? AND user_id = ?',
             [budgetId, userId]
         );
 
-        if ((result as any).affectedRows === 0) {
+        if ((result as any)?.affectedRows === 0) {
             return res.status(404).json({ message: 'Budget not found' });
         }
 
@@ -164,16 +166,16 @@ router.get('/summary', async (req, res) => {
         }
 
         // Get all budgets for the month
-        const [budgets] = await query(
+        const budgets = await query(
             `SELECT b.*, c.name as category_name, c.type as category_type
              FROM budgets b
              JOIN categories c ON b.category_id = c.id
              WHERE b.user_id = ? AND b.month = ?`,
             [userId, month]
-        );
+        ) as RowDataPacket[];
 
         // Get actual spending for each category
-        const [transactions] = await query(
+        const transactionsResult = await query(
             `SELECT t.category_id, c.type, SUM(t.amount) as total
              FROM transactions t
              JOIN categories c ON t.category_id = c.id
@@ -181,6 +183,9 @@ router.get('/summary', async (req, res) => {
              GROUP BY t.category_id, c.type`,
             [userId, month]
         );
+        const transactions = Array.isArray(transactionsResult)
+            ? (transactionsResult as RowDataPacket[])
+            : [];
 
         // Calculate summary
         const summary = {
@@ -223,4 +228,4 @@ router.get('/summary', async (req, res) => {
     }
 });
 
-export { router as budgetRoutes }; 
+export { router  }; 

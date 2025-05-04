@@ -34,29 +34,32 @@ router.post('/', async (req, res) => {
         const { name, type } = req.body;
 
         // Check if category with same name and type already exists
-        const [existingCategories] = await query(
+        const existingCategoriesResult = await query(
             'SELECT id FROM categories WHERE user_id = ? AND name = ? AND type = ?',
             [userId, name, type]
         );
+        const existingCategories = Array.isArray(existingCategoriesResult) ? existingCategoriesResult : [];
 
         if (Array.isArray(existingCategories) && existingCategories.length > 0) {
             return res.status(400).json({ message: 'Category already exists' });
         }
 
-        const [result] = await query(
+        const insertResult = await query(
             'INSERT INTO categories (user_id, name, type) VALUES (?, ?, ?)',
             [userId, name, type]
         );
 
-        const categoryId = (result as any).insertId;
+        const categoryId = (insertResult as any).insertId;
 
         // Fetch the created category
-        const [categories] = await query(
+        const createdCategoryResult = await query(
             'SELECT * FROM categories WHERE id = ?',
             [categoryId]
         );
 
-        res.status(201).json(categories[0]);
+        const createdCategory = Array.isArray(createdCategoryResult) ? createdCategoryResult[0] : null;
+
+        res.status(201).json(createdCategory);
     } catch (error) {
         console.error('Error creating category:', error);
         res.status(500).json({ message: 'Error creating category' });
@@ -71,7 +74,7 @@ router.put('/:id', async (req, res) => {
         const { name, type } = req.body;
 
         // Check if category exists and belongs to user
-        const [categories] = await query(
+        const categories = await query(
             'SELECT id FROM categories WHERE id = ? AND user_id = ?',
             [categoryId, userId]
         );
@@ -81,12 +84,13 @@ router.put('/:id', async (req, res) => {
         }
 
         // Check if new name conflicts with existing category
-        const [existingCategories] = await query(
+        const existingCategoriesResult = await query(
             'SELECT id FROM categories WHERE user_id = ? AND name = ? AND type = ? AND id != ?',
             [userId, name, type, categoryId]
         );
+        const existingCategories = Array.isArray(existingCategoriesResult) ? existingCategoriesResult : [];
 
-        if (Array.isArray(existingCategories) && existingCategories.length > 0) {
+        if (existingCategories.length > 0) {
             return res.status(400).json({ message: 'Category name already exists for this type' });
         }
 
@@ -96,12 +100,13 @@ router.put('/:id', async (req, res) => {
         );
 
         // Fetch the updated category
-        const [updatedCategories] = await query(
+        const updatedCategoriesResult = await query(
             'SELECT * FROM categories WHERE id = ?',
             [categoryId]
         );
 
-        res.json(updatedCategories[0]);
+        const updatedCategories = Array.isArray(updatedCategoriesResult) ? updatedCategoriesResult : [];
+        res.json(updatedCategories[0] || null);
     } catch (error) {
         console.error('Error updating category:', error);
         res.status(500).json({ message: 'Error updating category' });
@@ -115,10 +120,11 @@ router.delete('/:id', async (req, res) => {
         const categoryId = req.params.id;
 
         // Check if category has any transactions
-        const [transactions] = await query(
+        const transactionsResult = await query(
             'SELECT id FROM transactions WHERE category_id = ?',
             [categoryId]
         );
+        const transactions = Array.isArray(transactionsResult) ? transactionsResult : [];
 
         if (Array.isArray(transactions) && transactions.length > 0) {
             return res.status(400).json({ 
@@ -126,12 +132,12 @@ router.delete('/:id', async (req, res) => {
             });
         }
 
-        const [result] = await query(
+        const result = await query(
             'DELETE FROM categories WHERE id = ? AND user_id = ?',
             [categoryId, userId]
         );
 
-        if ((result as any).affectedRows === 0) {
+        if ((result as any)?.affectedRows === 0) {
             return res.status(404).json({ message: 'Category not found' });
         }
 
@@ -142,4 +148,4 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-export { router as categoryRoutes }; 
+export { router }; 

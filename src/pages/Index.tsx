@@ -1,35 +1,19 @@
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-=======
 import { authService } from "@/services/auth";
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
 export default function Index() {
   const navigate = useNavigate();
-  
-<<<<<<< HEAD
-  // Check session instead of localStorage
-  const session = localStorage.getItem("session");
-  const isLoggedIn = !!session && new Date(JSON.parse(session).expiresAt) > new Date();
 
-=======
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
   useEffect(() => {
     if (authService.isAuthenticated()) {
       navigate("/dashboard");
     }
-<<<<<<< HEAD
-  }, [isLoggedIn, navigate]);
-
-  return <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
-=======
   }, [navigate]);
 
   return (
     <div className="bg-gradient-to-br from-budget-green-800 to-budget-green-900 min-h-screen flex flex-col">
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
       <header className="px-4 py-6 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-2xl font-bold text-white cursor-pointer" onClick={() => navigate("/")}>BudgetWise</h1>

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Area,
@@ -10,14 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
-=======
-
-const data = [
-  
-];
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
 
 export function OverviewChart() {
   const [chartData, setChartData] = useState([

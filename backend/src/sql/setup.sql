@@ -61,8 +61,16 @@ VALUES (
     'test-user',
     'Test User',
     'test@example.com',
-    '$2b$10$TestHashedPasswordForTesting'  -- This is just for testing
+    '$2b$10$TestHashedPasswordForTesting'  
 );
+INSERT INTO users (id, name, email, password_hash) 
+VALUES (
+    'guneev',
+    'Guneev',
+    'tguneev@example.com',
+    '$2b$10$TestHashedPasswordForTesting'  
+);
+
 
 -- Insert some default categories
 INSERT INTO categories (id, user_id, name, type) VALUES

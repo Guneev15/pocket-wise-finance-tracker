@@ -11,10 +11,11 @@ router.post('/register', async (req, res) => {
         const { username, email, password } = req.body;
 
         // Check if user already exists
-        const [existingUsers] = await query(
+        const existingUsersResult = await query(
             'SELECT * FROM users WHERE email = ? OR username = ?',
             [email, username]
         );
+        const existingUsers = Array.isArray(existingUsersResult) ? existingUsersResult : [];
 
         if (Array.isArray(existingUsers) && existingUsers.length > 0) {
             return res.status(400).json({ message: 'User already exists' });
@@ -25,7 +26,7 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Insert new user
-        const [result] = await query(
+        const result = await query(
             'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
             [username, email, hashedPassword]
         );
@@ -56,10 +57,11 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
 
         // Find user
-        const [users] = await query(
+        const usersResult = await query(
             'SELECT * FROM users WHERE email = ?',
             [email]
         );
+        const users = Array.isArray(usersResult) ? usersResult : [];
 
         if (!Array.isArray(users) || users.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -95,4 +97,4 @@ router.post('/login', async (req, res) => {
     }
 });
 
-export { router as authRoutes }; 
+export { router  }; 

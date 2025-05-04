@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { toast } from "sonner";
 import bcrypt from 'bcryptjs';
 import { User, UserData, Session } from "./types";
@@ -6,7 +5,7 @@ import { User, UserData, Session } from "./types";
 const SALT_ROUNDS = 10;
 
 // Default categories that make sense for a new user
-const DEFAULT_CATEGORIES = [
+const DEFAULT_CATEGORIES: { id: string; name: string; icon: string; color: string; type: "income" | "expense" }[] = [
   { id: "income", name: "Income", icon: "wallet", color: "#4CAF50", type: "income" },
   { id: "expense", name: "Expense", icon: "credit-card", color: "#F44336", type: "expense" }
 ];
@@ -47,8 +46,8 @@ export const auth = {
         email: email.toLowerCase(),
         password: hashedPassword,
         createdAt: new Date().toISOString(),
-        transactions: [],
-        budgets: [],
+        transactions: [], // Empty transactions array
+        budgets: [], // Explicitly empty budgets array - user must create their own
         categories: DEFAULT_CATEGORIES,
         settings: {
           currency: "USD",
@@ -220,123 +219,286 @@ export const auth = {
       console.error("Change password error:", error);
       throw error;
     }
-=======
-import { User } from "@/types/user";
+  }
+};
 
-interface AuthState {
-  isLoggedIn: boolean;
-  user: User | null;
+// Add this interface if it doesn't exist already
+interface SignUpCredentials {
+  username: string;
+  password: string;
 }
 
-const AUTH_KEY = 'budgetwise_auth';
-const USERS_KEY = 'budgetwise_users';
+const authService = {
+  signUp: async (credentials: SignUpCredentials) => {
+    try {
+      // First, try to make the API request
+      try {
+        const response = await fetch("/api/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+        });
 
-export const authService = {
-  // Initialize auth state from localStorage
-  init: (): AuthState => {
-    const storedAuth = localStorage.getItem(AUTH_KEY);
-    if (storedAuth) {
-      return JSON.parse(storedAuth);
-    }
-    return { isLoggedIn: false, user: null };
-  },
+        // Handle non-200 responses
+        if (!response.ok) {
+          // If API returns 404, throw a specific error to trigger the fallback
+          if (response.status === 404) {
+            throw new Error("API_NOT_FOUND");
+          }
+          
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Registration failed with status: ${response.status}`);
+        }
 
-  // Login user
-  login: (email: string, password: string): Promise<{ success: boolean; message: string }> => {
-    return new Promise((resolve) => {
-      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-      const user = users.find((u: User) => u.email === email && u.password === password);
-      
-      if (user) {
-        // Store auth state
-        const authState: AuthState = {
-          isLoggedIn: true,
-          user: { ...user, password: '' } // Don't store password in auth state
-        };
-        localStorage.setItem(AUTH_KEY, JSON.stringify(authState));
-        resolve({ success: true, message: 'Login successful!' });
-      } else {
-        resolve({ success: false, message: 'Invalid credentials' });
-      }
-    });
-  },
-
-  // Register user
-  register: (name: string, email: string, password: string): Promise<{ success: boolean; message: string }> => {
-    return new Promise((resolve) => {
-      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-      
-      // Check if user already exists
-      if (users.some((u: User) => u.email === email)) {
-        resolve({ success: false, message: 'Email already registered' });
-        return;
-      }
-      
-      // Create new user
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        name,
-        email,
-        password,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Save user
-      users.push(newUser);
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
-      
-      resolve({ success: true, message: 'Registration successful!' });
-    });
-  },
-
-  // Logout user
-  logout: (): void => {
-    localStorage.removeItem(AUTH_KEY);
-  },
-
-  // Check if user is authenticated
-  isAuthenticated: (): boolean => {
-    const authState = authService.init();
-    return authState.isLoggedIn;
-  },
-
-  // Get current user
-  getCurrentUser: (): User | null => {
-    const authState = authService.init();
-    return authState.user;
-  },
-
-  // Get all users (for testing)
-  getUsers: (): User[] => {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-  },
-
-  // Update user data
-  updateUser: (userId: string, updates: Partial<User>): Promise<{ success: boolean; message: string }> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-        const userIndex = users.findIndex((u: User) => u.id === userId);
+        // Parse the response data
+        const data = await response.json();
         
-        if (userIndex === -1) {
-          resolve({ success: false, message: 'User not found' });
-          return;
+        // Save the token to localStorage
+        if (data.token) {
+          localStorage.setItem("authToken", data.token);
+        } else {
+          throw new Error("No authentication token received");
+        }
+        
+        return data;
+      } catch (apiError: any) {
+        // Check if this is a 404 error or network error
+        if (apiError.message === "API_NOT_FOUND" || 
+            (apiError instanceof TypeError && apiError.message.includes('Failed to fetch'))) {
+          console.warn("API endpoint not available, falling back to local storage authentication");
+          
+          // Fall back to local storage-based auth
+          const { username, password } = credentials;
+          
+          // Create a valid email that will pass validation
+          // Replace any characters that wouldn't be valid in an email
+          const safeUsername = username.replace(/[^a-zA-Z0-9]/g, '');
+          const validEmail = `${safeUsername}@pocketwise.local`;
+          
+          try {
+            // Use the existing auth.register method with appropriate parameters
+            const user = await auth.register(
+              username, // Use username as name
+              validEmail, // Use a guaranteed valid email
+              password
+            );
+            
+            // Create a token-like structure to maintain compatibility
+            const tokenData = {
+              token: `local_${Math.random().toString(36).substring(2)}`,
+              user: {
+                id: user.id,
+                username: user.name
+              }
+            };
+            
+            localStorage.setItem("authToken", tokenData.token);
+            return tokenData;
+          } catch (localAuthError: any) {
+            // Handle specific error cases from local auth
+            if (localAuthError.message.includes("valid email")) {
+              throw new Error("Please use a valid username (letters and numbers only)");
+            }
+            // Re-throw other errors
+            throw localAuthError;
+          }
+        }
+        
+        // Re-throw any other errors
+        throw apiError;
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      
+      // Provide more helpful error message for network issues
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error("Network error. Please check your connection and try again.");
+      }
+      
+      throw error;
+    }
+  },
+  
+  login: async (credentials) => {
+    try {
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+        });
+
+        if (!response.ok) {
+          // If API returns 404, throw a specific error to trigger the fallback
+          if (response.status === 404) {
+            throw new Error("API_NOT_FOUND");
+          }
+          
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to log in");
         }
 
-        // Update user data
-        users[userIndex] = { ...users[userIndex], ...updates };
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        const data = await response.json();
+        localStorage.setItem("authToken", data.token); // Save token for authentication
+        return data;
+      } catch (apiError: any) {
+        // Check if this is a 404 error or network error for fallback
+        if (apiError.message === "API_NOT_FOUND" || 
+            (apiError instanceof TypeError && apiError.message.includes('Failed to fetch'))) {
+          console.warn("API endpoint not available, falling back to local storage authentication");
+          
+          // Fall back to local storage-based auth
+          const { username, password } = credentials;
+          
+          // Create a valid email that will pass validation
+          const safeUsername = username.replace(/[^a-zA-Z0-9]/g, '');
+          const validEmail = `${safeUsername}@pocketwise.local`;
+          
+          try {
+            // Use the existing auth.login method
+            const user = await auth.login(validEmail, password);
+            
+            // Create a token-like structure to maintain compatibility
+            const tokenData = {
+              token: `local_${Math.random().toString(36).substring(2)}`,
+              user: {
+                id: user.id,
+                username: user.name
+              }
+            };
+            
+            localStorage.setItem("authToken", tokenData.token);
+            return tokenData;
+          } catch (localAuthError) {
+            // This could be because the user doesn't exist in local storage
+            // Try registering instead (first-time login fallback)
+            if (confirm("Account not found. Would you like to create a new account?")) {
+              return await authService.signUp(credentials);
+            }
+            throw new Error("Login failed. User not found.");
+          }
+        }
+        
+        // Re-throw any other errors
+        throw apiError;
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      throw error;
+    }
+  },
+  
+  getCurrentUser: async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return null;
 
-        // Update auth state if it's the current user
-        const authState = authService.init();
-        if (authState.user?.id === userId) {
-          authState.user = { ...authState.user, ...updates, password: '' };
-          localStorage.setItem(AUTH_KEY, JSON.stringify(authState));
+    // Check if this is a local token
+    if (token.startsWith('local_')) {
+      console.log("Using local auth fallback for current user");
+      try {
+        // Try to get the user from the local session
+        const session = JSON.parse(localStorage.getItem("session") || "null");
+        const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+        
+        if (!session || !currentUser) {
+          return null;
         }
 
-        resolve({ success: true, message: 'User updated successfully' });
-      }, 1000);
-    });
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
-  }
-}; 
+        // Check if session is expired
+        if (new Date(session.expiresAt) < new Date()) {
+          localStorage.removeItem("session");
+          localStorage.removeItem("currentUser");
+          localStorage.removeItem("authToken");
+          return null;
+        }
+
+        return {
+          id: currentUser.id,
+          username: currentUser.name, // Map name to username for API compatibility
+          name: currentUser.name
+        };
+      } catch (error) {
+        console.error("Error getting local user:", error);
+        return null;
+      }
+    }
+
+    // Regular API flow
+    try {
+      const response = await fetch("/api/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // API endpoint not found, try local fallback
+          return authService.getFallbackCurrentUser();
+        }
+        throw new Error("Failed to fetch user");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      
+      // Try local fallback if we get a network error
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        return authService.getFallbackCurrentUser();
+      }
+      
+      return null;
+    }
+  },
+
+  // New helper method for fallback
+  getFallbackCurrentUser: () => {
+    try {
+      const session = JSON.parse(localStorage.getItem("session") || "null");
+      const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+      
+      if (!session || !currentUser) {
+        return null;
+      }
+
+      // Check if session is expired
+      if (new Date(session.expiresAt) < new Date()) {
+        localStorage.removeItem("session");
+        localStorage.removeItem("currentUser");
+        localStorage.removeItem("authToken");
+        return null;
+      }
+
+      return {
+        id: currentUser.id,
+        username: currentUser.name, // Map name to username for API compatibility
+        name: currentUser.name
+      };
+    } catch (error) {
+      console.error("Error in fallback current user:", error);
+      return null;
+    }
+  },
+
+  logout: async () => {
+    // Clear both auth systems
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("session");
+    localStorage.removeItem("currentUser");
+    toast.success("Logged out successfully");
+  },
+  
+  isAuthenticated: () => {
+    // Check both auth systems
+    const token = localStorage.getItem("authToken");
+    const session = localStorage.getItem("session");
+    return !!token || !!session;
+  },
+};
+
+export { authService };

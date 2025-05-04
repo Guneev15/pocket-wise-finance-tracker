@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 const budgetData = [
   { 
@@ -81,6 +81,8 @@ const budgetData = [
 ];
 
 export function BudgetList() {
+  const [budgets, setBudgets] = useState(budgetData);
+
   const getBudgetStatusColor = (percentage: number) => {
     if (percentage < 70) return "text-budget-green-600";
     if (percentage < 90) return "text-budget-blue-600";
@@ -98,6 +100,23 @@ export function BudgetList() {
   const month = new Date().toLocaleString('default', { month: 'long' });
   const year = new Date().getFullYear();
 
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`/api/transactions/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete transaction");
+      }
+
+      // Remove the transaction from the local state
+      setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== id));
+    } catch (error) {
+      console.error("Error deleting transaction:", error.message);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -108,7 +127,7 @@ export function BudgetList() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {budgetData.map((budget) => (
+          {budgets.map((budget) => (
             <Card key={budget.id} className="overflow-hidden">
               <CardContent className="p-6">
                 <div className="flex justify-between items-center mb-2">
@@ -153,6 +172,14 @@ export function BudgetList() {
                     </div>
                   )}
                 </div>
+
+                <Button 
+                  variant="destructive" 
+                  className="mt-4 w-full"
+                  onClick={() => handleDelete(budget.id)}
+                >
+                  Delete
+                </Button>
               </CardContent>
             </Card>
           ))}

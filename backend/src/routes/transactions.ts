@@ -1,12 +1,42 @@
 import { Router } from 'express';
 import { query } from '../config/database';
 
+// Define proper type interfaces for better type safety
+interface User {
+  userId: number;
+}
+
+interface Transaction {
+  id: number;
+  user_id: number;
+  category_id: number;
+  amount: number;
+  description: string;
+  date: string;
+  type: 'income' | 'expense';
+  category_name?: string;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
+
 const router = Router();
 
 // Get all transactions for a user
 router.get('/', async (req, res) => {
     try {
         const userId = req.user?.userId;
+        
+        // Check if user is authenticated
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        
         const { startDate, endDate, type } = req.query;
 
         let sql = `
@@ -44,38 +74,75 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const userId = req.user?.userId;
+        
+        // Check if user is authenticated
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        
         const { category_id, amount, description, date, type } = req.body;
+        
+        // Validate required fields
+        if (!category_id || !amount || !date || !type) {
+            return res.status(400).json({ 
+                message: 'Missing required fields: category_id, amount, date, and type are required' 
+            });
+        }
+        
+        // Validate transaction type
+        if (type !== 'income' && type !== 'expense') {
+            return res.status(400).json({ 
+                message: 'Type must be either "income" or "expense"' 
+            });
+        }
 
         // Validate category belongs to user
-        const [categories] = await query(
+        const categoriesResult = await query(
             'SELECT id FROM categories WHERE id = ? AND user_id = ?',
             [category_id, userId]
         );
+        
+        const categories = Array.isArray(categoriesResult) ? categoriesResult : [];
 
-        if (!Array.isArray(categories) || categories.length === 0) {
-            return res.status(404).json({ message: 'Category not found' });
+        if (categories.length === 0) {
+            return res.status(404).json({ message: 'Category not found or does not belong to user' });
         }
 
-        const [result] = await query(
+        const result = await query(
             'INSERT INTO transactions (user_id, category_id, amount, description, date, type) VALUES (?, ?, ?, ?, ?, ?)',
-            [userId, category_id, amount, description, date, type]
+            [userId, category_id, amount, description || '', date, type]
         );
 
-        const transactionId = (result as any).insertId;
+        const insertId = (result as any)?.insertId ?? null;
+            
+        if (!insertId) {
+            return res.status(500).json({ message: 'Failed to create transaction' });
+        }
 
         // Fetch the created transaction with category name
-        const [transactions] = await query(
+        const transactionsResult = await query(
             `SELECT t.*, c.name as category_name 
              FROM transactions t
              JOIN categories c ON t.category_id = c.id
              WHERE t.id = ?`,
-            [transactionId]
+            [insertId]
         );
+        const transactionsArray = Array.isArray(transactionsResult) ? transactionsResult : [];
+        console.log('Created transaction:', transactionsResult);
+        
+        const transactions = Array.isArray(transactionsArray) ? transactionsArray : [];
+        
+        if (transactions.length === 0) {
+            return res.status(404).json({ message: 'Created transaction not found' });
+        }
 
         res.status(201).json(transactions[0]);
     } catch (error) {
         console.error('Error creating transaction:', error);
-        res.status(500).json({ message: 'Error creating transaction' });
+        res.status(500).json({ 
+            message: 'Error creating transaction', 
+            error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+        });
     }
 });
 
@@ -83,27 +150,37 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const userId = req.user?.userId;
+        
+        // Check if user is authenticated
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        
         const transactionId = req.params.id;
         const { category_id, amount, description, date, type } = req.body;
 
         // Check if transaction exists and belongs to user
-        const [transactions] = await query(
+        const transactionsResult = await query(
             'SELECT id FROM transactions WHERE id = ? AND user_id = ?',
             [transactionId, userId]
         );
 
-        if (!Array.isArray(transactions) || transactions.length === 0) {
+        const transactions = Array.isArray(transactionsResult) ? transactionsResult : [];
+
+        if (transactions.length === 0) {
             return res.status(404).json({ message: 'Transaction not found' });
         }
 
         // Validate category belongs to user
-        const [categories] = await query(
+        const categoriesResult = await query(
             'SELECT id FROM categories WHERE id = ? AND user_id = ?',
             [category_id, userId]
         );
 
-        if (!Array.isArray(categories) || categories.length === 0) {
-            return res.status(404).json({ message: 'Category not found' });
+        const categories = Array.isArray(categoriesResult) ? categoriesResult : [];
+
+        if (categories.length === 0) {
+            return res.status(404).json({ message: 'Category not found or does not belong to user' });
         }
 
         await query(
@@ -112,13 +189,19 @@ router.put('/:id', async (req, res) => {
         );
 
         // Fetch the updated transaction with category name
-        const [updatedTransactions] = await query(
+        const updatedTransactionsResult = await query(
             `SELECT t.*, c.name as category_name 
              FROM transactions t
              JOIN categories c ON t.category_id = c.id
              WHERE t.id = ?`,
             [transactionId]
         );
+
+        const updatedTransactions = Array.isArray(updatedTransactionsResult) ? updatedTransactionsResult : [];
+
+        if (updatedTransactions.length === 0) {
+            return res.status(404).json({ message: 'Updated transaction not found' });
+        }
 
         res.json(updatedTransactions[0]);
     } catch (error) {
@@ -131,22 +214,50 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const userId = req.user?.userId;
+        
+        // Check if user is authenticated
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        
         const transactionId = req.params.id;
+        
+        // Validate that the transaction exists and belongs to the user before attempting to delete
+        const checkResult = await query(
+            'SELECT id FROM transactions WHERE id = ? AND user_id = ?',
+            [transactionId, userId]
+        );
+        
+        const transactions = Array.isArray(checkResult) ? checkResult : [];
+        
+        if (transactions.length === 0) {
+            return res.status(404).json({ message: 'Transaction not found or does not belong to user' });
+        }
 
-        const [result] = await query(
+        const result = await query(
             'DELETE FROM transactions WHERE id = ? AND user_id = ?',
             [transactionId, userId]
         );
 
-        if ((result as any).affectedRows === 0) {
-            return res.status(404).json({ message: 'Transaction not found' });
+        const affectedRows = result && typeof result === 'object' && 'affectedRows' in result 
+            ? (result as any).affectedRows 
+            : 0;
+            
+        if (affectedRows === 0) {
+            return res.status(404).json({ message: 'Transaction could not be deleted' });
         }
 
-        res.json({ message: 'Transaction deleted successfully' });
+        res.json({ 
+            message: 'Transaction deleted successfully',
+            id: transactionId
+        });
     } catch (error) {
         console.error('Error deleting transaction:', error);
-        res.status(500).json({ message: 'Error deleting transaction' });
+        res.status(500).json({ 
+            message: 'Error deleting transaction',
+            error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+        });
     }
 });
 
-export { router as transactionRoutes }; 
+export { router  };

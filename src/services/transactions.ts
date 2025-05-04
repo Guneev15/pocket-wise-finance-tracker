@@ -1,177 +1,163 @@
-<<<<<<< HEAD
-import { Transaction } from './types';
-import { toast } from 'sonner';
+import { Transaction } from "./types";
+import { toast } from "sonner";
 
-const API_URL = 'http://localhost:5000/api';
-
-export const transactionService = {
-  async addTransaction(userId: string, transaction: Partial<Transaction>): Promise<Transaction> {
-    try {
-      const response = await fetch(`${API_URL}/transactions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          categoryId: transaction.categoryId,
-          amount: transaction.amount,
-          description: transaction.description,
-          date: transaction.date || new Date().toISOString(),
-          type: transaction.type
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add transaction');
-      }
-
-      const savedTransaction = await response.json();
-      toast.success('Transaction added successfully');
-      return savedTransaction;
-    } catch (error) {
-      console.error('Error adding transaction:', error);
-      toast.error('Failed to add transaction');
-      throw error;
-    }
-  },
-
-  async getTransactions(userId: string): Promise<Transaction[]> {
-    try {
-      const response = await fetch(`${API_URL}/transactions/${userId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch transactions');
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      toast.error('Failed to fetch transactions');
-      throw error;
-    }
-=======
-interface Transaction {
-  id: string;
-  type: 'income' | 'expense';
+// Add proper interface for transaction data
+export interface TransactionData {
+  type: string;
   amount: number;
   date: string;
   category: string;
-  description?: string;
-  userId: string;
+  description: string;
+  userId: number | string;
 }
 
-const TRANSACTIONS_KEY = 'budgetwise_transactions';
+// Define clear return type
+export interface TransactionResult {
+  success: boolean;
+  message?: string;
+  data?: any;
+}
+
+const TRANSACTIONS_KEY = "budgetwise_transactions";
 
 export const transactionService = {
-  // Get all transactions for the current user
-  getTransactions: (userId: string): Promise<Transaction[]> => {
-    return new Promise((resolve) => {
+  getTransactions: async (userId: string): Promise<any[]> => {
+    try {
       try {
-        const transactions = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY) || '[]');
-        const userTransactions = transactions.filter((t: Transaction) => t.userId === userId);
-        resolve(userTransactions);
-      } catch (error) {
-        resolve([]);
-      }
-    });
-  },
+        // First try API endpoint
+        const response = await fetch(`http://localhost:5000/api/transactions?userId=${userId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
 
-  // Add a new transaction
-  addTransaction: (transaction: Omit<Transaction, 'id'>): Promise<{ success: boolean; message: string }> => {
-    return new Promise((resolve) => {
-      try {
-        const transactions = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY) || '[]');
-        
-        // Create new transaction with ID
-        const newTransaction: Transaction = {
-          ...transaction,
-          id: crypto.randomUUID(),
-        };
-
-        // Add to transactions array
-        transactions.push(newTransaction);
-        localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
-
-        // Dispatch storage event to notify other tabs
-        window.dispatchEvent(new Event('storage'));
-
-        resolve({ success: true, message: 'Transaction added successfully!' });
-      } catch (error) {
-        resolve({ success: false, message: 'Failed to add transaction' });
-      }
-    });
-  },
-
-  // Delete a transaction
-  deleteTransaction: (transactionId: string): Promise<{ success: boolean; message: string }> => {
-    return new Promise((resolve) => {
-      try {
-        const transactions = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY) || '[]');
-        const filteredTransactions = transactions.filter((t: Transaction) => t.id !== transactionId);
-        localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(filteredTransactions));
-
-        // Dispatch storage event to notify other tabs
-        window.dispatchEvent(new Event('storage'));
-
-        resolve({ success: true, message: 'Transaction deleted successfully!' });
-      } catch (error) {
-        resolve({ success: false, message: 'Failed to delete transaction' });
-      }
-    });
-  },
-
-  // Update a transaction
-  updateTransaction: (transactionId: string, updates: Partial<Transaction>): Promise<{ success: boolean; message: string }> => {
-    return new Promise((resolve) => {
-      try {
-        const transactions = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY) || '[]');
-        const index = transactions.findIndex((t: Transaction) => t.id === transactionId);
-        
-        if (index === -1) {
-          resolve({ success: false, message: 'Transaction not found' });
-          return;
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error("API_NOT_FOUND");
+          }
+          throw new Error(`Failed to fetch transactions: ${response.statusText}`);
         }
 
-        transactions[index] = { ...transactions[index], ...updates };
-        localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
-
-        // Dispatch storage event to notify other tabs
-        window.dispatchEvent(new Event('storage'));
-
-        resolve({ success: true, message: 'Transaction updated successfully!' });
-      } catch (error) {
-        resolve({ success: false, message: 'Failed to update transaction' });
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (apiError) {
+        // If API fails, fall back to localStorage
+        console.warn("API endpoint unavailable, falling back to localStorage for transactions");
+        
+        // Get transactions from localStorage
+        const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+        
+        // Filter by userId
+        return transactions.filter((transaction: any) => 
+          transaction && transaction.userId && transaction.userId.toString() === userId.toString()
+        );
       }
-    });
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      toast.error("Failed to fetch transactions");
+      return [];
+    }
   },
 
-  // Get transactions summary
-  getSummary: (userId: string) => {
-    return new Promise((resolve) => {
+  addTransaction: async (transaction: TransactionData): Promise<TransactionResult> => {
+    try {
       try {
-        const transactions = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY) || '[]');
-        const userTransactions = transactions.filter((t: Transaction) => t.userId === userId);
-        
-        const income = userTransactions
-          .filter(t => t.type === 'income')
-          .reduce((sum, t) => sum + t.amount, 0);
-        const expenses = userTransactions
-          .filter(t => t.type === 'expense')
-          .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-        const balance = income - expenses;
+        // Try API endpoint first
+        const response = await fetch('http://localhost:5000/api/transactions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify(transaction),
+        });
 
-        resolve({
-          income,
-          expenses,
-          balance
-        });
-      } catch (error) {
-        resolve({
-          income: 0,
-          expenses: 0,
-          balance: 0
-        });
+        if (response.status === 404) {
+          throw new Error("API_NOT_FOUND");
+        }
+
+        if (!response.ok) {
+          let errorMessage = `Failed with status: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            if (errorData?.message) {
+              errorMessage = errorData.message;
+            }
+          } catch (parseError) {
+            console.warn('Could not parse error response', parseError);
+          }
+          
+          throw new Error(errorMessage);
+        }
+
+        // Handle empty responses safely
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : { success: true };
+        
+        return {
+          success: true,
+          data,
+        };
+      } catch (apiError: any) {
+        // Fall back to localStorage if API not available
+        if (apiError.message === "API_NOT_FOUND" || 
+            (apiError instanceof TypeError && apiError.message.includes('Failed to fetch'))) {
+          console.warn("API endpoint not available, falling back to localStorage for transactions");
+          
+          // Get existing transactions
+          const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+          
+          // Create new transaction with ID
+          const newTransaction = {
+            ...transaction,
+            id: Date.now().toString(),
+            createdAt: new Date().toISOString()
+          };
+          
+          // Add to storage
+          transactions.push(newTransaction);
+          localStorage.setItem("transactions", JSON.stringify(transactions));
+          
+          // Update user's transactions in session data if using local auth
+          try {
+            const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+            if (currentUser && currentUser.id === transaction.userId) {
+              // Add to user's transactions list
+              if (!Array.isArray(currentUser.transactions)) {
+                currentUser.transactions = [];
+              }
+              currentUser.transactions.push(newTransaction);
+              localStorage.setItem("currentUser", JSON.stringify(currentUser));
+            }
+          } catch (userUpdateError) {
+            console.warn("Could not update user's transactions", userUpdateError);
+          }
+          
+          return {
+            success: true,
+            data: newTransaction
+          };
+        }
+        
+        throw apiError;
       }
-    });
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
-  }
-}; 
+    } catch (error: any) {
+      console.error('Error adding transaction:', error);
+      return {
+        success: false,
+        message: error.message || 'An unexpected error occurred',
+      };
+    }
+  },
+
+  deleteTransaction: async (transactionId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const transactions = JSON.parse(localStorage.getItem(TRANSACTIONS_KEY) || "[]");
+      const updatedTransactions = transactions.filter((transaction: Transaction) => transaction.id !== transactionId);
+      localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updatedTransactions));
+      return { success: true, message: "Transaction deleted successfully" };
+    } catch (error) {
+      return { success: false, message: "Failed to delete transaction" };
+    }
+  },
+};

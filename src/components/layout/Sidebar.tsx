@@ -141,7 +141,7 @@ export function Sidebar() {
         </div>
         
         <div className="flex-shrink-0 flex border-t border-budget-green-700 p-4">
-          <Button 
+          {/* <Button 
             variant="ghost" 
             className={cn(
               "w-full justify-start text-gray-100 hover:bg-budget-green-700 hover:text-white transition-all duration-300 hover:scale-[1.02]",
@@ -151,7 +151,7 @@ export function Sidebar() {
           >
             <LogOut className={cn("h-5 w-5 transition-transform", isOpen ? "mr-3" : "mx-auto")} />
             {isOpen && <span className="animate-fadeIn">Logout</span>}
-          </Button>
+          </Button> */}
         </div>
       </div>
 

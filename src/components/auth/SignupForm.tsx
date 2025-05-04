@@ -1,146 +1,134 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useNavigate, Link } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-<<<<<<< HEAD
-import { auth } from "@/services/auth";
-=======
 import { authService } from "@/services/auth";
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
+
+// Define form schema with stronger validation
+const signupSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
+});
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      confirmPassword: ""
+    }
+  });
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateEmail(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
-      return;
-    }
-    
+  const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
+    setServerError(null);
     
     try {
-<<<<<<< HEAD
-      await auth.register(name, email, password);
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(error.message || "An error occurred. Please try again.");
-=======
-      const result = await authService.register(name, email, password);
-      if (result.success) {
-        toast.success("Account created successfully! Please log in.");
-        navigate("/login");
+      // Attempt to register the user
+      const response = await authService.signUp({
+        username: data.username,
+        password: data.password
+      });
+      
+      if (response && response.token) {
+        toast.success("Account created successfully!");
+        navigate("/");
       } else {
-        toast.error(result.message);
+        // This handles cases where the response is successful but doesn't contain a token
+        setServerError("Registration failed. Please try again.");
+        toast.error("Registration failed. Please try again.");
       }
-    } catch (error) {
-      toast.error("An error occurred during registration");
->>>>>>> 16542632dbf75b11cc0620af2230220e66cd757a
+    } catch (error: any) {
+      // Better error handling with specific error messages
+      const errorMessage = error?.message || "An error occurred during registration";
+      setServerError(errorMessage);
+      toast.error(errorMessage);
+      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg animate-fadeIn">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">
-          <a onClick={() => navigate('/')} className="cursor-pointer hover:text-budget-green-700 transition-colors">BudgetWise</a>
-        </CardTitle>
-        <CardDescription className="text-center">Enter your details to create your account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              placeholder="Enter your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
-            />
-            {email && !validateEmail(email) && (
-              <p className="text-xs text-red-500 mt-1 animate-fadeIn">Please enter a valid email address</p>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      {serverError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+          {serverError}
+        </div>
+      )}
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Username</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter username" autoComplete="username" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create a password (min. 8 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
-            />
-          </div>
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input {...field} type="password" placeholder="Enter password" autoComplete="new-password" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input {...field} type="password" placeholder="Confirm password" autoComplete="new-password" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Sign up"}
+            {isLoading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
-      </CardContent>
-      <CardFooter className="flex justify-center">
-        <div className="text-center text-sm">
-          Already have an account?{" "}
-          <Button variant="link" className="p-0 hover:text-budget-green-700" onClick={() => navigate("/login")}>
-            Log in
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
+      </Form>
+      
+      <div className="mt-4 text-center text-sm">
+        Already have an account?{" "}
+        <Link to="/login" className="text-blue-600 hover:underline">
+          Log in
+        </Link>
+      </div>
+    </div>
   );
 }
