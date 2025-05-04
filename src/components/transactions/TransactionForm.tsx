@@ -22,44 +22,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { transactionService, TransactionResult } from "@/services/transactions";
 import { authService } from "@/services/auth";
-import { log } from "console";
-
-const categoryOptions = [
-  { value: "income", label: "Income" },
-  { value: "housing", label: "Housing" },
-  { value: "food", label: "Food" },
-  { value: "transportation", label: "Transportation" },
-  { value: "utilities", label: "Utilities" },
-  { value: "entertainment", label: "Entertainment" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "shopping", label: "Shopping" },
-  { value: "personal", label: "Personal" },
-  { value: "education", label: "Education" },
-  { value: "savings", label: "Savings" },
-  { value: "debt", label: "Debt" },
-  { value: "other", label: "Other" },
-];
+import { categoryService } from "@/services/categories";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], {
     required_error: "Please select a transaction type",
   }),
-  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-    message: "Amount must be a positive number",
-  }),
+  amount: z
+    .string()
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: "Amount must be a positive number",
+    }),
   date: z.date({
     required_error: "Please select a date",
   }),
-  category: z.string({
-    required_error: "Please select a category",
+  category: z.string().min(1, {
+    message: "Please select a category",
   }),
   description: z.string().optional(),
 });
@@ -67,13 +63,15 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface TransactionFormProps {
-  onSuccess?: ()=>Promise<void> 
+  onSuccess?: () => Promise<void>;
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -86,30 +84,8 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     },
   });
 
-  useEffect(() => {
-    if (isOpen && !authService.isAuthenticated()) {
-      toast.error("Please log in to add transactions");
-      setIsOpen(false);
-      navigate("/login");
-    }
-  }, [isOpen, navigate]);
-
   const handleSubmit = async (data: FormData) => {
-    let user = null;
-    try {
-      const maybePromise = authService.getCurrentUser();
-      user =
-        typeof maybePromise === "object" && typeof (maybePromise as any).then === "function"
-          ? await maybePromise
-          : maybePromise;
-    } catch {
-      user = null;
-    }
-    if (!user || !user.id) {
-      toast.error("You must be logged in to add transactions");
-      navigate("/login");
-      return;
-    }
+    const user = await authService.getCurrentUser();
 
     setIsLoading(true);
 
@@ -120,17 +96,17 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         setIsLoading(false);
         return;
       }
-      
+
       // Show loading toast
       const loadingToastId = toast.loading("Adding transaction...");
-      
+
       const result = await transactionService.addTransaction({
         type: data.type,
         amount: parseFloat(data.amount),
         date: format(data.date, "yyyy-MM-dd"),
-        category: data.category || "",
+        category_id: data.category || "",
         description: data.description || "",
-        userId: user.id,
+        user_id: user.id,
       });
 
       // Dismiss loading toast
@@ -140,13 +116,13 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         toast.success("Transaction added successfully!");
         form.reset();
         setIsOpen(false);
-        
+
         // Ensure the onSuccess callback is called to refresh the transaction list
-        
+
         if (onSuccess) {
           console.log("Calling onSuccess callback");
-          setTimeout(async() => {
-             await onSuccess();
+          setTimeout(async () => {
+            await onSuccess();
           }, 100); // Small delay to ensure state updates have processed
         }
       } else {
@@ -154,13 +130,37 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         console.error("Transaction error:", result.message);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
       toast.error(errorMessage);
       console.error("Transaction submission error:", error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const fetchCategories = async () => {
+    const user = await authService.getCurrentUser();
+    const result = (await categoryService.getCategories(user.id)) as
+      | any[]
+      | {
+          message: string;
+        };
+    if (Array.isArray(result)) {
+      const categories = result?.map((category) => ({
+        label: category.name,
+        value: category.category_id,
+      }));
+      setCategoryOptions(categories || []);
+    } else {
+      toast.error(result.message || "Failed to fetch categories");
+      console.error("Category fetch error:", result.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -306,7 +306,11 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
             />
 
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>

@@ -10,8 +10,16 @@ import {
   YAxis,
 } from "recharts";
 import { useEffect, useState } from "react";
+import { Transaction } from "@/services/types";
+import { authService } from "@/services/auth";
+import { transactionService } from "@/services/transactions";
+import { toast } from "sonner";
 
-export function OverviewChart() {
+export function OverviewChart({
+  transactions,
+}: {
+  transactions: Transaction[];
+}) {
   const [chartData, setChartData] = useState([
     { name: "Jan", income: 0, expenses: 0 },
     { name: "Feb", income: 0, expenses: 0 },
@@ -28,41 +36,46 @@ export function OverviewChart() {
   ]);
 
   useEffect(() => {
-    // Get current user from localStorage
-    const currentUser = localStorage.getItem("user");
-    if (!currentUser) return;
-
-    const user = JSON.parse(currentUser);
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const userData = users.find((u: any) => u.id === user.id);
-    
     // If user has transaction data, update chart
-    if (userData && userData.transactions && userData.transactions.length > 0) {
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    if (transactions && transactions.length > 0) {
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
       const monthlyData = monthNames.map((name, index) => {
-        const monthTransactions = userData.transactions.filter((t: any) => {
-          const date = new Date(t.date);
+        const monthTransactions = transactions.filter((t: any) => {
+          const date = new Date(t.transaction_date);
           return date.getMonth() === index;
         });
-        
+
         const income = monthTransactions
-          .filter((t: any) => t.type === 'income')
+          .filter((t: any) => t.type === "income")
           .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
-          
+
         const expenses = monthTransactions
-          .filter((t: any) => t.type === 'expense')
+          .filter((t: any) => t.type === "expense")
           .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
-          
+
         return {
           name,
           income,
-          expenses
+          expenses,
         };
       });
-      
+
       setChartData(monthlyData);
     }
-  }, []);
+  }, [transactions]);
 
   return (
     <Card className="col-span-4">
@@ -82,13 +95,17 @@ export function OverviewChart() {
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" />
-            <YAxis 
+            <YAxis
               tickFormatter={(value) => `₹${value}`}
-              style={{ fontSize: '0.75rem' }}
+              style={{ fontSize: "0.75rem" }}
             />
-            <Tooltip 
+            <Tooltip
               formatter={(value) => [`₹${value}`, undefined]}
-              contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+              contentStyle={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0",
+              }}
             />
             <Legend />
             <Area

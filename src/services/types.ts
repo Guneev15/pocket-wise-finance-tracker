@@ -1,5 +1,5 @@
 export interface User {
-  id: string;
+  user_id: string;
   name: string;
   email: string;
 }
@@ -16,7 +16,7 @@ export interface UserData extends User {
 
 export interface UserSettings {
   currency: string;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   notifications: boolean;
 }
 
@@ -32,16 +32,17 @@ export interface Category {
   name: string;
   icon: string;
   color: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
 }
 
 export interface Transaction {
   id: string;
   amount: number;
   description: string;
-  categoryId: string;
+  category_id: string;
+  user_id?: string;
   date: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   createdAt: string;
 }
 
@@ -50,7 +51,8 @@ export interface Budget {
   categoryId: string;
   amount: number;
   spent: number;
-  period: 'monthly' | 'yearly';
+  period: "monthly" | "yearly";
+  userId?: string;
   startDate: string;
   endDate: string;
   createdAt: string;
@@ -62,4 +64,4 @@ export interface Session {
   name: string;
   createdAt: string;
   expiresAt: string;
-} 
+}
