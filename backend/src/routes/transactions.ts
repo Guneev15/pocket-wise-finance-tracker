@@ -132,7 +132,6 @@ router.post("/", async (req, res) => {
     const transactionsArray = Array.isArray(transactionsResult)
       ? transactionsResult
       : [];
-    console.log("Created transaction:", transactionsResult);
 
     const transactions = Array.isArray(transactionsArray)
       ? transactionsArray
