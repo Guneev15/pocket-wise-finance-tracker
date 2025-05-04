@@ -1,12 +1,26 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { transactionService } from "@/services/transactions";
 import { budgetService } from "@/services/budgets";
 import { authService } from "@/services/auth";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ArrowDown, ArrowUp, Wallet, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+} from "lucide-react";
+import { User } from "@/services/types";
 
 export function Dashboard() {
   const [totalBalance, setTotalBalance] = useState(0);
@@ -16,14 +30,14 @@ export function Dashboard() {
     total: 0,
     spent: 0,
     remaining: 0,
-    percentage: 0
+    percentage: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   const calculateMetrics = async () => {
     try {
-      const user = authService.getCurrentUser();
+      const user = authService.getCurrentUser() as unknown as User;
       if (!user) {
         toast.error("You must be logged in to view dashboard");
         navigate("/login");
@@ -38,13 +52,24 @@ export function Dashboard() {
 
       // Get current month's transactions
       const currentDate = new Date();
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const firstDayOfMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        1
+      );
+      const lastDayOfMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      );
 
-      const [transactions, budgets] = await Promise.all([
+      const [transactions, budgets] = (await Promise.all([
         transactionService.getTransactions(user.id),
-        budgetService.getBudgets()
-      ]);
+        budgetService.getBudgets(),
+      ])) as unknown as [
+        { id: number; amount: number; type: string; date: string }[],
+        { id: number; amount: number; userId: number }[]
+      ];
 
       // If no transactions or budgets, keep values at zero
       if (!transactions.length && !budgets.length) {
@@ -53,30 +78,34 @@ export function Dashboard() {
       }
 
       // Filter transactions for current month
-      const monthlyTransactions = transactions.filter(transaction => {
+      const monthlyTransactions = transactions.filter((transaction) => {
         const transactionDate = new Date(transaction.date);
-        return transactionDate >= firstDayOfMonth && transactionDate <= lastDayOfMonth;
+        return (
+          transactionDate >= firstDayOfMonth &&
+          transactionDate <= lastDayOfMonth
+        );
       });
 
       // Calculate monthly income and expenses
       const income = monthlyTransactions
-        .filter(t => t.type === 'income')
+        .filter((t) => t.type === "income")
         .reduce((sum, t) => sum + t.amount, 0);
-      
+
       const expenses = monthlyTransactions
-        .filter(t => t.type === 'expense')
+        .filter((t) => t.type === "expense")
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
       // Calculate total balance
       const balance = transactions.reduce((sum, t) => {
-        return sum + (t.type === 'income' ? t.amount : -Math.abs(t.amount));
+        return sum + (t.type === "income" ? t.amount : -Math.abs(t.amount));
       }, 0);
 
       // Calculate budget status
       const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
       const spentBudget = expenses;
       const remainingBudget = totalBudget - spentBudget;
-      const percentage = totalBudget > 0 ? (spentBudget / totalBudget) * 100 : 0;
+      const percentage =
+        totalBudget > 0 ? (spentBudget / totalBudget) * 100 : 0;
 
       // Update state with calculated values
       setMonthlyIncome(income);
@@ -86,7 +115,7 @@ export function Dashboard() {
         total: totalBudget,
         spent: spentBudget,
         remaining: remainingBudget,
-        percentage
+        percentage,
       });
     } catch (error) {
       console.error("Error calculating metrics:", error);
@@ -103,14 +132,14 @@ export function Dashboard() {
 
   useEffect(() => {
     calculateMetrics();
-    
+
     // Set up event listeners for storage changes
     const handleStorageChange = () => {
       calculateMetrics();
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   if (isLoading) {
@@ -141,26 +170,30 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Monthly Income
+            </CardTitle>
             <ArrowUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${monthlyIncome.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Income this month
-            </p>
+            <div className="text-2xl font-bold">
+              ${monthlyIncome.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground">Income this month</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Monthly Expenses
+            </CardTitle>
             <ArrowDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${monthlyExpenses.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Expenses this month
-            </p>
+            <div className="text-2xl font-bold">
+              ${monthlyExpenses.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground">Expenses this month</p>
           </CardContent>
         </Card>
         <Card>
@@ -169,9 +202,12 @@ export function Dashboard() {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${budgetStatus.remaining.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ${budgetStatus.remaining.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {budgetStatus.percentage.toFixed(0)}% of ${budgetStatus.total.toFixed(2)} budget spent
+              {budgetStatus.percentage.toFixed(0)}% of $
+              {budgetStatus.total.toFixed(2)} budget spent
             </p>
           </CardContent>
         </Card>
@@ -203,4 +239,4 @@ export function Dashboard() {
       </div>
     </div>
   );
-} 
+}

@@ -5,19 +5,35 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { toast } from "sonner";
 import { authService } from "@/services/auth";
 
 // Define form schema with stronger validation
-const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string()
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"]
-});
+const signupSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Name is required")
+      .max(50, "Name must be less than 50 characters"),
+    email: z
+      .string()
+      .email("Invalid email address")
+      .min(1, "Email is required"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
@@ -29,23 +45,25 @@ export function SignupForm() {
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      username: "",
+      name: "",
+      email: "",
       password: "",
-      confirmPassword: ""
-    }
+      confirmPassword: "",
+    },
   });
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
     setServerError(null);
-    
+
     try {
       // Attempt to register the user
       const response = await authService.signUp({
-        username: data.username,
-        password: data.password
+        name: data.name,
+        email: data.email,
+        password: data.password,
       });
-      
+
       if (response && response.token) {
         toast.success("Account created successfully!");
         navigate("/");
@@ -54,9 +72,10 @@ export function SignupForm() {
         setServerError("Registration failed. Please try again.");
         toast.error("Registration failed. Please try again.");
       }
-    } catch (error: any) {
+    } catch (error) {
       // Better error handling with specific error messages
-      const errorMessage = error?.message || "An error occurred during registration";
+      const errorMessage =
+        error?.message || "An error occurred during registration";
       setServerError(errorMessage);
       toast.error(errorMessage);
       console.error("Registration error:", error);
@@ -72,23 +91,44 @@ export function SignupForm() {
           {serverError}
         </div>
       )}
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="username"
+            name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Username</FormLabel>
+                <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Enter username" autoComplete="username" />
+                  <Input
+                    {...field}
+                    placeholder="Enter name"
+                    autoComplete="name"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Enter username"
+                    autoComplete="username"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="password"
@@ -96,13 +136,18 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" placeholder="Enter password" autoComplete="new-password" />
+                  <Input
+                    {...field}
+                    type="password"
+                    placeholder="Enter password"
+                    autoComplete="new-password"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -110,19 +155,24 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" placeholder="Confirm password" autoComplete="new-password" />
+                  <Input
+                    {...field}
+                    type="password"
+                    placeholder="Confirm password"
+                    autoComplete="new-password"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
       </Form>
-      
+
       <div className="mt-4 text-center text-sm">
         Already have an account?{" "}
         <Link to="/login" className="text-blue-600 hover:underline">

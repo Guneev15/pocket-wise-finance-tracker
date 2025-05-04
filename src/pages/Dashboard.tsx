@@ -15,42 +15,29 @@ export default function Dashboard() {
   const [totalExpense, setTotalExpense] = useState(0);
 
   useEffect(() => {
-    if (!authService.isAuthenticated()) {
-      toast.error("Please log in to view your dashboard");
-      navigate("/login");
-      return;
-    }
-
     loadDashboardData();
   }, [navigate]);
 
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      let user;
-      try {
-        const maybePromise = authService.getCurrentUser();
-        user = typeof maybePromise === "object" && typeof (maybePromise as any).then === "function"
-          ? await maybePromise
-          : maybePromise;
-      } catch {
-        user = null;
-      }
-
-      if (!user || typeof user !== 'object' || !('id' in user)) {
-        toast.error("Please log in to view your dashboard");
-        navigate("/login");
-        return;
-      }
-
-      // Load transactions to calculate totals
-      const userTransactions = await transactionService.getTransactions(String(user.id));
+      const user = await authService.getCurrentUser();
+      const userTransactions = (await transactionService.getTransactions(
+        String(user.id)
+      )) as unknown as {
+        id: string;
+        user_id: string;
+        type: string;
+        amount: string;
+        category: string;
+        date: string;
+      }[];
 
       // Calculate income and expense totals
       let income = 0;
       let expense = 0;
 
-      userTransactions.forEach(transaction => {
+      userTransactions.forEach((transaction) => {
         if (transaction.type === "income") {
           income += Number(transaction.amount);
         } else if (transaction.type === "expense") {

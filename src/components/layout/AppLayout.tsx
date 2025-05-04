@@ -2,27 +2,27 @@ import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
-import { auth } from "@/services/auth";
+import { auth, authService } from "@/services/auth";
 
 export function AppLayout() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await auth.getCurrentUser();
-        if (!user) {
-          navigate("/login");
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
+
+  const checkAuth = async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) {
         navigate("/login");
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
+    } catch (error) {
+      console.error("Auth check error:", error);
+      navigate("/login");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     checkAuth();
   }, [navigate]);
 

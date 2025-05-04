@@ -1,6 +1,7 @@
+/* eslint-disable no-useless-catch */
 import { toast } from "sonner";
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "http://localhost:5001/api";
 
 // Type definitions
 export interface User {
@@ -16,7 +17,7 @@ export interface Transaction {
   amount: number;
   description: string;
   date: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   categoryName?: string;
 }
 
@@ -43,16 +44,16 @@ export const api = {
   async register(name: string, email: string, password: string): Promise<User> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ name, email, password }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
+        throw new Error(error.message || "Registration failed");
       }
 
       const data = await response.json();
@@ -65,21 +66,21 @@ export const api = {
   async login(email: string, password: string): Promise<User> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Login failed');
+        throw new Error(error.message || "Login failed");
       }
 
       const data = await response.json();
       // Store the token in localStorage
-      localStorage.setItem('token', data.token);
+      localStorage.setItem("token", data.token);
       return data.user;
     } catch (error) {
       throw error;
@@ -89,15 +90,15 @@ export const api = {
   // Transactions
   async getTransactions(userId: string): Promise<Transaction[]> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/transactions`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch transactions');
+        throw new Error("Failed to fetch transactions");
       }
 
       return await response.json();
@@ -106,21 +107,23 @@ export const api = {
     }
   },
 
-  async addTransaction(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {
+  async addTransaction(
+    transaction: Omit<Transaction, "id">
+  ): Promise<Transaction> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/transactions`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(transaction),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to add transaction');
+        throw new Error(error.message || "Failed to add transaction");
       }
 
       return await response.json();
@@ -129,18 +132,24 @@ export const api = {
     }
   },
 
-  async deleteTransaction(userId: string, transactionId: string): Promise<void> {
+  async deleteTransaction(
+    userId: string,
+    transactionId: string
+  ): Promise<void> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/transactions/${transactionId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to delete transaction');
+        throw new Error("Failed to delete transaction");
       }
     } catch (error) {
       throw error;
@@ -150,15 +159,15 @@ export const api = {
   // Categories
   async getCategories(userId: string): Promise<Category[]> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/categories`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch categories');
+        throw new Error("Failed to fetch categories");
       }
 
       return await response.json();
@@ -170,15 +179,15 @@ export const api = {
   // Budgets
   async getBudgets(userId: string): Promise<Budget[]> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/budgets`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch budgets');
+        throw new Error("Failed to fetch budgets");
       }
 
       return await response.json();
@@ -187,21 +196,21 @@ export const api = {
     }
   },
 
-  async addBudget(budget: Omit<Budget, 'id'>): Promise<Budget> {
+  async addBudget(budget: Omit<Budget, "id">): Promise<Budget> {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/budgets`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(budget),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to add budget');
+        throw new Error(error.message || "Failed to add budget");
       }
 
       return await response.json();
@@ -211,17 +220,20 @@ export const api = {
   },
 
   // Analytics
-  async getMonthlySummary(userId: string, year: number): Promise<any[]> {
+  async getMonthlySummary(userId: string, year: number): Promise<unknown[]> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/transactions/summary?year=${year}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/transactions/summary?year=${year}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch monthly summary');
+        throw new Error("Failed to fetch monthly summary");
       }
 
       return await response.json();
@@ -230,17 +242,24 @@ export const api = {
     }
   },
 
-  async getCategoryBreakdown(userId: string, month: number, year: number): Promise<any[]> {
+  async getCategoryBreakdown(
+    userId: string,
+    month: number,
+    year: number
+  ): Promise<unknown[]> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/transactions/breakdown?month=${month}&year=${year}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/transactions/breakdown?month=${month}&year=${year}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch category breakdown');
+        throw new Error("Failed to fetch category breakdown");
       }
 
       return await response.json();
@@ -250,7 +269,7 @@ export const api = {
   },
 };
 
-export const handleApiError = (error: any) => {
-  console.error('API Error:', error);
-  toast.error(error.message || 'Something went wrong');
+export const handleApiError = (error: { message?: string }) => {
+  console.error("API Error:", error);
+  toast.error(error.message || "Something went wrong");
 };

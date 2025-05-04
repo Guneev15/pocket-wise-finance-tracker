@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { toast } from "sonner";
 import { authService } from "@/services/auth";
 import {
@@ -33,22 +40,22 @@ export function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateEmail(email)) {
       toast.error("Please enter a valid email address");
       return;
     }
-    
+
     if (!password) {
       toast.error("Please enter your password");
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const result = await authService.login({ email, password });
-      if (result.success) {
+      if (result.token) {
         toast.success(result.message);
         navigate("/dashboard");
       } else {
@@ -64,7 +71,7 @@ export function LoginForm() {
   const handlePasswordReset = (e: React.FormEvent) => {
     e.preventDefault();
     setIsResetting(true);
-    
+
     // In a real app, this would be an API call to send reset email
     setTimeout(() => {
       toast.success(`Password reset link sent to ${resetEmail}`);
@@ -78,9 +85,16 @@ export function LoginForm() {
     <Card className="w-full max-w-md mx-auto shadow-lg animate-fadeIn">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center">
-          <a onClick={() => navigate('/')} className="cursor-pointer hover:text-budget-green-700 transition-colors">BudgetWise</a>
+          <a
+            onClick={() => navigate("/")}
+            className="cursor-pointer hover:text-budget-green-700 transition-colors"
+          >
+            BudgetWise
+          </a>
         </CardTitle>
-        <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
+        <CardDescription className="text-center">
+          Enter your credentials to access your account
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
@@ -96,7 +110,9 @@ export function LoginForm() {
               className="transition-all duration-300 focus:ring-2 focus:ring-budget-green-500"
             />
             {email && !validateEmail(email) && (
-              <p className="text-xs text-red-500 mt-1 animate-fadeIn">Please enter a valid email address</p>
+              <p className="text-xs text-red-500 mt-1 animate-fadeIn">
+                Please enter a valid email address
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -104,7 +120,10 @@ export function LoginForm() {
               <Label htmlFor="password">Password</Label>
               <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="link" className="p-0 h-auto text-sm font-normal text-primary">
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto text-sm font-normal text-primary"
+                  >
                     Forgot password?
                   </Button>
                 </DialogTrigger>
@@ -112,7 +131,8 @@ export function LoginForm() {
                   <DialogHeader>
                     <DialogTitle>Reset password</DialogTitle>
                     <DialogDescription>
-                      Enter your email address and we'll send you a link to reset your password.
+                      Enter your email address and we'll send you a link to
+                      reset your password.
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handlePasswordReset}>
@@ -156,7 +176,11 @@ export function LoginForm() {
       <CardFooter className="flex justify-center">
         <p className="text-sm text-gray-600">
           Don't have an account?{" "}
-          <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/signup")}>
+          <Button
+            variant="link"
+            className="p-0 h-auto"
+            onClick={() => navigate("/signup")}
+          >
             Sign up
           </Button>
         </p>

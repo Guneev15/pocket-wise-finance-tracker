@@ -1,4 +1,5 @@
 import { authService } from "./auth";
+import { User } from "./types";
 
 interface Budget {
   id: string;
@@ -8,11 +9,11 @@ interface Budget {
   createdAt: string;
 }
 
-const BUDGETS_KEY = 'budgetwise_budgets';
+const BUDGETS_KEY = "budgetwise_budgets";
 
 export const budgetService = {
   async getBudgets(): Promise<Budget[]> {
-    const user = authService.getCurrentUser();
+    const user = authService.getCurrentUser() as unknown as User;
     if (!user) {
       throw new Error("User not authenticated");
     }
@@ -21,9 +22,11 @@ export const budgetService = {
     return budgets.filter((budget: Budget) => budget.userId === user.id);
   },
 
-  async addBudget(budget: Omit<Budget, "id" | "userId" | "createdAt">): Promise<{ success: boolean; message: string }> {
+  async addBudget(
+    budget: Omit<Budget, "id" | "userId" | "createdAt">
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      const user = authService.getCurrentUser();
+      const user = authService.getCurrentUser() as unknown as User;
       if (!user) {
         throw new Error("User not authenticated");
       }
@@ -51,10 +54,14 @@ export const budgetService = {
     }
   },
 
-  async deleteBudget(budgetId: string): Promise<{ success: boolean; message: string }> {
+  async deleteBudget(
+    budgetId: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const budgets = JSON.parse(localStorage.getItem(BUDGETS_KEY) || "[]");
-      const filteredBudgets = budgets.filter((budget: Budget) => budget.id !== budgetId);
+      const filteredBudgets = budgets.filter(
+        (budget: Budget) => budget.id !== budgetId
+      );
       localStorage.setItem(BUDGETS_KEY, JSON.stringify(filteredBudgets));
 
       return {
@@ -69,11 +76,16 @@ export const budgetService = {
     }
   },
 
-  async updateBudget(budgetId: string, updates: Partial<Budget>): Promise<{ success: boolean; message: string }> {
+  async updateBudget(
+    budgetId: string,
+    updates: Partial<Budget>
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const budgets = JSON.parse(localStorage.getItem(BUDGETS_KEY) || "[]");
-      const index = budgets.findIndex((budget: Budget) => budget.id === budgetId);
-      
+      const index = budgets.findIndex(
+        (budget: Budget) => budget.id === budgetId
+      );
+
       if (index === -1) {
         return {
           success: false,
@@ -94,5 +106,5 @@ export const budgetService = {
         message: "Failed to update budget",
       };
     }
-  }
-}; 
+  },
+};
