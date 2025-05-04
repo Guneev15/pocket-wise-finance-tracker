@@ -67,7 +67,6 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<

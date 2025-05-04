@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,30 +21,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
-const categoryOptions = [
-  { value: "housing", label: "Housing" },
-  { value: "food", label: "Food" },
-  { value: "transportation", label: "Transportation" },
-  { value: "utilities", label: "Utilities" },
-  { value: "entertainment", label: "Entertainment" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "shopping", label: "Shopping" },
-  { value: "personal", label: "Personal" },
-  { value: "education", label: "Education" },
-  { value: "savings", label: "Savings" },
-  { value: "debt", label: "Debt" },
-  { value: "other", label: "Other" },
-];
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { authService } from "@/services/auth";
+import { categoryService } from "@/services/categories";
+import { budgetService } from "@/services/budgets";
 
 const formSchema = z.object({
-  category: z.string({
-    required_error: "Please select a category",
+  category: z.string().min(1, {
+    message: "Please select a category",
   }),
-  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-    message: "Amount must be a positive number",
-  }),
+  amount: z
+    .string()
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: "Amount must be a positive number",
+    }),
   month: z.string({
     required_error: "Please select a month",
   }),
@@ -54,9 +49,12 @@ const formSchema = z.object({
   }),
 });
 
-export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
+export function BudgetForm({ onSuccess }: { onSuccess?: () => Promise<void> }) {
   const [isOpen, setIsOpen] = useState(false);
-  
+  const [categoryOptions, setCategoryOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,17 +65,28 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, this would be an API call
-    console.log("Budget values:", values);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Budget set successfully!");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const budgetData = {
+      category: values.category,
+      amount: parseFloat(values.amount),
+      month: values.month,
+      year: values.year,
+    };
+
+    try {
+      await budgetService.addBudget(budgetData);
+      await onSuccess?.();
+      toast.success("Budget created successfully");
       form.reset();
       setIsOpen(false);
-      if (onSuccess) onSuccess();
-    }, 500);
+    } catch (error) {
+      if (error.message === "API_NOT_FOUND") {
+        toast.error("API not found");
+      } else {
+        toast.error("Failed to create budget");
+      }
+      console.error("Budget creation error:", error);
+    }
   }
 
   const months = [
@@ -100,6 +109,28 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
     { value: "2024", label: "2024" },
     { value: "2025", label: "2025" },
   ];
+  const fetchCategories = async () => {
+    const user = await authService.getCurrentUser();
+    const result = (await categoryService.getCategories(user.id)) as
+      | any[]
+      | {
+          message: string;
+        };
+    if (Array.isArray(result)) {
+      const categories = result?.map((category) => ({
+        label: category.name,
+        value: category.category_id,
+      }));
+      setCategoryOptions(categories || []);
+    } else {
+      toast.error(result.message || "Failed to fetch categories");
+      console.error("Category fetch error:", result.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -136,7 +167,7 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="amount"
@@ -153,7 +184,7 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -179,7 +210,7 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="year"
@@ -205,9 +236,13 @@ export function BudgetForm({ onSuccess }: { onSuccess?: () => void }) {
                 )}
               />
             </div>
-            
+
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit">Save Budget</Button>
