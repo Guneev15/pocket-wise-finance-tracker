@@ -70,6 +70,7 @@ export function BudgetList() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {budgets?.map((budget) => {
             const amount = +budget.amount;
+            const percentage = Math.round((budget.spent / amount) * 100);
             return (
               <Card key={budget.budget_id} className="overflow-hidden">
                 <CardContent className="p-6">
@@ -78,17 +79,17 @@ export function BudgetList() {
                     <div
                       className={cn(
                         "text-sm font-medium",
-                        getBudgetStatusColor(budget.percentage)
+                        getBudgetStatusColor(percentage)
                       )}
                     >
-                      {budget.percentage ?? 0}%
+                      {percentage ?? 0}%
                     </div>
                   </div>
 
                   <Progress
-                    value={Math.min(budget.percentage, 100)}
+                    value={Math.min(percentage, 100)}
                     className="h-2 mb-4"
-                    indicatorClassName={getProgressColor(budget.percentage)}
+                    indicatorClassName={getProgressColor(percentage)}
                   />
 
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -107,7 +108,7 @@ export function BudgetList() {
                   </div>
 
                   <div className="mt-4 text-sm text-muted-foreground">
-                    {budget.percentage > 100 ? (
+                    {percentage > 100 ? (
                       <div className="flex items-center text-budget-red-600">
                         <ArrowUp className="h-4 w-4 mr-1" />
                         <span>

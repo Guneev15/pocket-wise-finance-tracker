@@ -13,7 +13,7 @@ interface Transaction {
   category_id: number;
   amount: number;
   description: string;
-  date: string;
+  transaction_date: string;
   type: "income" | "expense";
   category_name?: string;
 }
@@ -124,6 +124,16 @@ router.post("/", async (req, res) => {
       ]
     );
 
+    // Update spent amount in budgets table
+
+    if (type === "expense") {
+      await query(
+        `UPDATE budgets 
+       SET spent = spent + ? 
+       WHERE user_id = ? AND category_id = ? AND MONTH = MONTH(?) AND YEAR = YEAR(?)`,
+        [amount, user_id, category_id, date, date]
+      );
+    }
     // Fetch the created transaction with category name
     const transactionsResult = await query(
       `SELECT t.* FROM transactions t WHERE t.transaction_id = ?`,
@@ -168,7 +178,7 @@ router.delete("/:id", async (req, res) => {
 
     // Validate that the transaction exists and belongs to the user before attempting to delete
     const checkResult = await query(
-      "SELECT transaction_id FROM transactions WHERE transaction_id = ? AND user_id = ?",
+      "SELECT * FROM transactions WHERE transaction_id = ? AND user_id = ?",
       [transaction_id, user_id]
     );
 
@@ -184,6 +194,19 @@ router.delete("/:id", async (req, res) => {
       "DELETE FROM transactions WHERE transaction_id = ? AND user_id = ?",
       [transaction_id, user_id]
     );
+    const transaction = transactions[0] as Transaction;
+
+    if (!!transaction && transaction?.type === "expense") {
+      const amount = transaction?.amount ?? 0;
+      const category_id = transaction?.category_id ?? "";
+      const date = transaction?.transaction_date ?? new Date();
+      await query(
+        `UPDATE budgets 
+        SET spent = spent - ? 
+        WHERE user_id = ? AND category_id = ? AND MONTH = MONTH(?) AND YEAR = YEAR(?)`,
+        [amount, user_id, category_id, date, date]
+      );
+    }
 
     const affectedRows =
       result && typeof result === "object" && "affectedRows" in result

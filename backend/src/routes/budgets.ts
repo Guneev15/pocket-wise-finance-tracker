@@ -50,14 +50,38 @@ router.post("/", async (req, res) => {
       ? existingBudgetIdArray
       : [];
 
+    // check existing transactions for the same month
+
+    const transactionsResult = await query(
+      `SELECT SUM(amount) AS total_spent 
+       FROM transactions 
+       WHERE user_id = ? 
+         AND category_id = ? 
+         AND MONTH(transaction_date) = ? 
+         AND YEAR(transaction_date) = ? 
+         AND type = 'expense'`,
+      [user_id, category_id, month, year]
+    );
+
+    interface Transaction {
+      total_spent: number | null;
+    }
+
+    const transactions: Transaction =
+      Array.isArray(transactionsResult) && transactionsResult[0]
+        ? (transactionsResult[0] as Transaction)
+        : { total_spent: 0 };
+
+    const spent = transactions.total_spent || 0;
+
     const existing_budget = budgetsArray[0] as RowDataPacket;
     let budget_id = existing_budget?.budget_id;
     let result;
     if (!budget_id) {
       budget_id = uuidv4();
       result = await query(
-        "INSERT INTO budgets (budget_id,user_id, category_id, amount, month, year) VALUES (?, ?, ?, ?, ?, ?)",
-        [budget_id, user_id, category_id, amount, month, year]
+        "INSERT INTO budgets (budget_id, user_id, category_id, amount, month, year, spent) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [budget_id, user_id, category_id, amount, month, year, spent]
       );
     } else {
       const updatedAmount = +(existing_budget?.amount ?? 0) + amount;
