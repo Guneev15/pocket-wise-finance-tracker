@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { budgetService } from "@/services/budgets";
 import { BudgetForm } from "./BudgetForm";
+import { toast } from "sonner";
 
 export function BudgetList() {
   const [budgets, setBudgets] = useState([]);
@@ -24,23 +25,11 @@ export function BudgetList() {
     return "bg-budget-red-600";
   };
 
-  const month = new Date().toLocaleString("default", { month: "long" });
-  const year = new Date().getFullYear();
-
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/transactions/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete transaction");
-      }
-
-      // Remove the transaction from the local state
-      setBudgets((prevBudgets) =>
-        prevBudgets.filter((budget) => budget.id !== id)
-      );
+      const response = await budgetService.deleteBudget(id);
+      await fetchBudgets();
+      toast.success(response.message);
     } catch (error) {
       console.error("Error deleting transaction:", error.message);
     }

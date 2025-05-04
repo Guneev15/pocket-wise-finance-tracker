@@ -82,14 +82,15 @@ export const budgetService = {
   },
 
   async deleteBudget(
-    budgetId: string
+    id: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const budgets = JSON.parse(localStorage.getItem(BUDGETS_KEY) || "[]");
-      const filteredBudgets = budgets.filter(
-        (budget: Budget) => budget.id !== budgetId
-      );
-      localStorage.setItem(BUDGETS_KEY, JSON.stringify(filteredBudgets));
+      await fetch(`http://localhost:5001/api/budgets/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
 
       return {
         success: true,
