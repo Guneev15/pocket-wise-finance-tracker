@@ -94,16 +94,12 @@ export const transactionService = {
     transactionId: string
   ): Promise<{ success: boolean; message: string }> => {
     try {
-      const transactions = JSON.parse(
-        localStorage.getItem(TRANSACTIONS_KEY) || "[]"
-      );
-      const updatedTransactions = transactions.filter(
-        (transaction: Transaction) => transaction.id !== transactionId
-      );
-      localStorage.setItem(
-        TRANSACTIONS_KEY,
-        JSON.stringify(updatedTransactions)
-      );
+      await fetch(`http://localhost:5001/api/transactions/${transactionId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
       return { success: true, message: "Transaction deleted successfully" };
     } catch (error) {
       return { success: false, message: "Failed to delete transaction" };

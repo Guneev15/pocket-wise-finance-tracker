@@ -155,76 +155,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Update a transaction
-router.put("/:id", async (req, res) => {
-  try {
-    const user_id = req.user?.user_id;
-
-    // Check if user is authenticated
-    if (!user_id) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const transactionId = req.params.id;
-    const { category_id, amount, description, date, type } = req.body;
-
-    // Check if transaction exists and belongs to user
-    const transactionsResult = await query(
-      "SELECT id FROM transactions WHERE id = ? AND user_id = ?",
-      [transactionId, user_id]
-    );
-
-    const transactions = Array.isArray(transactionsResult)
-      ? transactionsResult
-      : [];
-
-    if (transactions.length === 0) {
-      return res.status(404).json({ message: "Transaction not found" });
-    }
-
-    // Validate category belongs to user
-    const categoriesResult = await query(
-      "SELECT id FROM categories WHERE id = ? AND user_id = ?",
-      [category_id, user_id]
-    );
-
-    const categories = Array.isArray(categoriesResult) ? categoriesResult : [];
-
-    if (categories.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Category not found or does not belong to user" });
-    }
-
-    await query(
-      "UPDATE transactions SET category_id = ?, amount = ?, description = ?, date = ?, type = ? WHERE id = ? AND user_id = ?",
-      [category_id, amount, description, date, type, transactionId, user_id]
-    );
-
-    // Fetch the updated transaction with category name
-    const updatedTransactionsResult = await query(
-      `SELECT t.*, c.name as category_name 
-             FROM transactions t
-             JOIN categories c ON t.category_id = c.id
-             WHERE t.id = ?`,
-      [transactionId]
-    );
-
-    const updatedTransactions = Array.isArray(updatedTransactionsResult)
-      ? updatedTransactionsResult
-      : [];
-
-    if (updatedTransactions.length === 0) {
-      return res.status(404).json({ message: "Updated transaction not found" });
-    }
-
-    res.json(updatedTransactions[0]);
-  } catch (error) {
-    console.error("Error updating transaction:", error);
-    res.status(500).json({ message: "Error updating transaction" });
-  }
-});
-
 // Delete a transaction
 router.delete("/:id", async (req, res) => {
   try {
@@ -235,12 +165,12 @@ router.delete("/:id", async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const transactionId = req.params.id;
+    const transaction_id = req.params.id;
 
     // Validate that the transaction exists and belongs to the user before attempting to delete
     const checkResult = await query(
-      "SELECT id FROM transactions WHERE id = ? AND user_id = ?",
-      [transactionId, user_id]
+      "SELECT transaction_id FROM transactions WHERE transaction_id = ? AND user_id = ?",
+      [transaction_id, user_id]
     );
 
     const transactions = Array.isArray(checkResult) ? checkResult : [];
@@ -252,8 +182,8 @@ router.delete("/:id", async (req, res) => {
     }
 
     const result = await query(
-      "DELETE FROM transactions WHERE id = ? AND user_id = ?",
-      [transactionId, user_id]
+      "DELETE FROM transactions WHERE transaction_id = ? AND user_id = ?",
+      [transaction_id, user_id]
     );
 
     const affectedRows =
@@ -270,7 +200,7 @@ router.delete("/:id", async (req, res) => {
 
     res.json({
       message: "Transaction deleted successfully",
-      id: transactionId,
+      transaction_id,
     });
   } catch (error) {
     console.error("Error deleting transaction:", error);

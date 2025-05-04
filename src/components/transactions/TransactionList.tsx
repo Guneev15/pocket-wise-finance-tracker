@@ -285,7 +285,9 @@ export function TransactionList() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(transaction.id)}
+                            onClick={() =>
+                              handleDelete(transaction.transaction_id)
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

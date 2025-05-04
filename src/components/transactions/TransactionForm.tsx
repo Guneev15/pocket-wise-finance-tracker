@@ -54,8 +54,8 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Please select a date",
   }),
-  category: z.string({
-    required_error: "Please select a category",
+  category: z.string().min(1, {
+    message: "Please select a category",
   }),
   description: z.string().optional(),
 });
