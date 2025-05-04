@@ -7,20 +7,11 @@ const router = Router();
 // Get all categories for a user
 router.get("/", async (req, res) => {
   try {
-    const user_id = req.user?.user_id;
-    const { type } = req.query;
-
-    let sql = "SELECT * FROM categories WHERE user_id = ?";
-    const params: any[] = [user_id];
-
-    if (type) {
-      sql += " AND type = ?";
-      params.push(type);
-    }
+    let sql = "SELECT * FROM categories";
 
     sql += " ORDER BY name ASC";
 
-    const categories = await query(sql, params);
+    const categories = await query(sql);
     res.json(categories);
   } catch (error) {
     console.error("Error fetching categories:", error);

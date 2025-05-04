@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Search, Filter, ArrowUpRight, ArrowDownRight, Trash2, Edit2, ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import {
+  Search,
+  Filter,
+  ArrowUpRight,
+  ArrowDownRight,
+  Trash2,
+  Edit2,
+  ArrowDownIcon,
+  ArrowUpIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,45 +33,51 @@ import { transactionService } from "@/services/transactions";
 import { authService } from "@/services/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionForm } from "./TransactionForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
-const categoryOptions = [
-  { value: "all", label: "All Categories" },
-  { value: "income", label: "Income" },
-  { value: "housing", label: "Housing" },
-  { value: "food", label: "Food" },
-  { value: "transportation", label: "Transportation" },
-  { value: "utilities", label: "Utilities" },
-  { value: "entertainment", label: "Entertainment" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "shopping", label: "Shopping" },
-  { value: "personal", label: "Personal" },
-  { value: "education", label: "Education" },
-  { value: "savings", label: "Savings" },
-  { value: "debt", label: "Debt" },
-  { value: "other", label: "Other" },
-];
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Transaction, User } from "@/services/types";
+import { categoryService } from "@/services/categories";
 
 export function TransactionList() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [category, setCategory] = useState("all");
-  const [type, setType] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
- 
+  const [categoryOptions, setCategoryOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+
+  const fetchCategories = async () => {
+    const user = await authService.getCurrentUser();
+    const result = (await categoryService.getCategories(user.id)) as
+      | any[]
+      | {
+          message: string;
+        };
+    if (Array.isArray(result)) {
+      const categories = result?.map((category) => ({
+        label: category.name,
+        value: category.category_id,
+      }));
+      setCategoryOptions(categories || []);
+    } else {
+      toast.error(result.message || "Failed to fetch categories");
+      console.error("Category fetch error:", result.message);
+    }
+  };
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!authService.isAuthenticated()) {
-      toast.error("Please log in to view transactions");
-      navigate("/login");
-      return;
-    }
+    fetchCategories();
+  }, []);
 
+  useEffect(() => {
     loadTransactions();
   }, [navigate]);
 
@@ -70,42 +85,29 @@ export function TransactionList() {
     setIsLoading(true);
     try {
       // Handle potential async getCurrentUser with proper error handling
-      let user;
-      try {
-        const maybePromise = authService.getCurrentUser();
-        user = typeof maybePromise === "object" && typeof (maybePromise as any).then === "function"
-          ? await maybePromise
-          : maybePromise;
-      } catch {
-        user = null;
-      }
+      const user = await authService.getCurrentUser();
 
-      // Type guard to ensure user has id property
-      if (!user || typeof user !== 'object' || !('id' in user)) {
-        toast.error("Please log in to view transactions");
-        navigate("/login");
-        return;
-      }
+      const userTransactions = (await transactionService.getTransactions(
+        String(user.user_id)
+      )) as Transaction[];
 
-      const userTransactions = await transactionService.getTransactions(String(user.id));
-      
       // Sort transactions by date (newest first)
       userTransactions.sort((a, b) => {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       });
-      
+
       // Calculate income and expense totals
       let income = 0;
       let expense = 0;
-      
-      userTransactions.forEach(transaction => {
+
+      userTransactions.forEach((transaction) => {
         if (transaction.type === "income") {
           income += Number(transaction.amount);
         } else if (transaction.type === "expense") {
           expense += Number(transaction.amount);
         }
       });
-      
+
       setTotalIncome(income);
       setTotalExpense(expense);
       setTransactions(userTransactions);
@@ -121,9 +123,8 @@ export function TransactionList() {
     try {
       const result = await transactionService.deleteTransaction(transactionId);
       if (result.success) {
-         await loadTransactions();
+        await loadTransactions();
         toast.success(result.message);
-      
       } else {
         toast.error(result.message);
       }
@@ -132,26 +133,18 @@ export function TransactionList() {
     }
   };
 
-  const handleTransactionAdded = async() => {
+  const handleTransactionAdded = async () => {
     setIsDialogOpen(false);
     await loadTransactions(); // Refresh transactions after adding a new one
     toast.success("Transaction list refreshed");
   };
-
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch = transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = category === "all" || transaction.category === category;
-    const matchesType = type === "all" || transaction.type === type;
-    return matchesSearch && matchesCategory && matchesType;
-  });
 
   if (isLoading) {
     return <div>Loading transactions...</div>;
   }
 
   return (
-     <div className="space-y-6">
+    <div className="space-y-6">
       {/* Financial Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -160,22 +153,37 @@ export function TransactionList() {
             <ArrowUpIcon className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">₹{totalIncome.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-green-500">
+              ₹{totalIncome.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +{((totalIncome / (totalIncome + totalExpense || 1)) * 100).toFixed(1)}% of total
+              +
+              {(
+                (totalIncome / (totalIncome + totalExpense || 1)) *
+                100
+              ).toFixed(1)}
+              % of total
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Expenses
+            </CardTitle>
             <ArrowDownIcon className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">₹{totalExpense.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-red-500">
+              ₹{totalExpense.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {((totalExpense / (totalIncome + totalExpense || 1)) * 100).toFixed(1)}% of total
+              {(
+                (totalExpense / (totalIncome + totalExpense || 1)) *
+                100
+              ).toFixed(1)}
+              % of total
             </p>
           </CardContent>
         </Card>
@@ -183,15 +191,23 @@ export function TransactionList() {
         <Card className="relative">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Balance</CardTitle>
-            <div className={`h-4 w-4 ${(totalIncome - totalExpense) >= 0 ? "bg-green-500" : "bg-red-500"} rounded-full`}></div>
+            <div
+              className={`h-4 w-4 ${
+                totalIncome - totalExpense >= 0 ? "bg-green-500" : "bg-red-500"
+              } rounded-full`}
+            ></div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${(totalIncome - totalExpense) >= 0 ? "text-green-500" : "text-red-500"}`}>
+            <div
+              className={`text-2xl font-bold ${
+                totalIncome - totalExpense >= 0
+                  ? "text-green-500"
+                  : "text-red-500"
+              }`}
+            >
               ₹{(totalIncome - totalExpense).toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Current balance
-            </p>
+            <p className="text-xs text-muted-foreground">Current balance</p>
           </CardContent>
         </Card>
       </div>
@@ -215,44 +231,6 @@ export function TransactionList() {
         <CardContent>
           {/* Search and filter controls */}
           <div className="space-y-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 items-center space-x-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             {/* Transactions table */}
             <div className="rounded-md border">
               <Table>
@@ -266,18 +244,25 @@ export function TransactionList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.length === 0 ? (
+                  {transactions.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center">
                         No transactions found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>{format(new Date(transaction.date), "MMM dd, yyyy")}</TableCell>
-                        <TableCell>{transaction.description || "No description"}</TableCell>
-                        <TableCell>{transaction.category}</TableCell>
+                    transactions.map((transaction) => (
+                      <TableRow key={transaction.transaction_id}>
+                        <TableCell>
+                          {format(
+                            new Date(transaction.created_at),
+                            "MMM dd, yyyy"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {transaction.description || "No description"}
+                        </TableCell>
+                        <TableCell>{transaction.category_name}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             {transaction.amount > 0 ? (
@@ -285,7 +270,13 @@ export function TransactionList() {
                             ) : (
                               <ArrowDownRight className="mr-1 h-4 w-4 text-red-500" />
                             )}
-                            <span className={transaction.amount > 0 ? "text-green-500" : "text-red-500"}>
+                            <span
+                              className={
+                                transaction.amount > 0
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                              }
+                            >
                               ₹{Math.abs(transaction.amount).toFixed(2)}
                             </span>
                           </div>

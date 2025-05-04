@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { query } from "../config/database";
+import { v4 as uuidv4 } from "uuid";
 
 // Define proper type interfaces for better type safety
 interface User {
@@ -61,6 +62,7 @@ router.get("/", async (req, res) => {
     sql += " ORDER BY t.created_at DESC";
 
     const transactions = await query(sql, params);
+
     res.json(transactions);
   } catch (error) {
     console.error("Error fetching transactions:", error);
@@ -97,41 +99,35 @@ router.post("/", async (req, res) => {
 
     // Validate category belongs to user
     const categoriesResult = await query(
-      "SELECT id FROM categories WHERE id = ? AND user_id = ?",
-      [category_id, user_id]
+      "SELECT category_id FROM categories WHERE category_id = ?",
+      [category_id]
     );
 
     const categories = Array.isArray(categoriesResult) ? categoriesResult : [];
 
     if (categories.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Category not found or does not belong to user" });
+      return res.status(404).json({ message: "Category not found" });
     }
 
-    const result = await query(
-      "INSERT INTO transactions (user_id, category_id, amount, description, date, type) VALUES (?, ?, ?, ?, ?, ?)",
-      [user_id, category_id, amount, description || "", date, type]
+    const transactionId = uuidv4();
+
+    await query(
+      "INSERT INTO transactions (transaction_id, user_id, category_id, amount, description, transaction_date, type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        transactionId,
+        user_id,
+        category_id,
+        amount,
+        description || "",
+        date,
+        type,
+      ]
     );
-
-    const insertId =
-      (
-        result as {
-          insertId: number;
-        }
-      )?.insertId ?? null;
-
-    if (!insertId) {
-      return res.status(500).json({ message: "Failed to create transaction" });
-    }
 
     // Fetch the created transaction with category name
     const transactionsResult = await query(
-      `SELECT t.*, c.name as category_name 
-             FROM transactions t
-             JOIN categories c ON t.category_id = c.id
-             WHERE t.id = ?`,
-      [insertId]
+      `SELECT t.* FROM transactions t WHERE t.transaction_id = ?`,
+      [transactionId]
     );
     const transactionsArray = Array.isArray(transactionsResult)
       ? transactionsResult
