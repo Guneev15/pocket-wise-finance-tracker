@@ -64,15 +64,20 @@ export function Dashboard() {
       );
 
       const [transactions, budgets] = (await Promise.all([
-        transactionService.getTransactions(user.id),
+        transactionService.getTransactions(user.user_id),
         budgetService.getBudgets(),
       ])) as unknown as [
-        { id: number; amount: number; type: string; date: string }[],
-        { id: number; amount: number; userId: number }[]
+        {
+          transaction_id: number;
+          amount: number;
+          type: string;
+          date: string;
+        }[],
+        { budget_id: number; amount: number; userId: number }[]
       ];
 
       // If no transactions or budgets, keep values at zero
-      if (!transactions.length && !budgets.length) {
+      if (!transactions?.length && !budgets?.length) {
         setIsLoading(false);
         return;
       }

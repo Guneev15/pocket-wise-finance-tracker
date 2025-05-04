@@ -39,8 +39,8 @@ export interface Transaction {
   id: string;
   amount: number;
   description: string;
-  categoryId: string;
-  userId?: string;
+  category_id: string;
+  user_id?: string;
   date: string;
   type: "income" | "expense";
   createdAt: string;
